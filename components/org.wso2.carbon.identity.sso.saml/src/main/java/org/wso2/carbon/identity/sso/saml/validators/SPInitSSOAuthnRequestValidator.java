@@ -140,7 +140,8 @@ public class SPInitSSOAuthnRequestValidator extends SSOAuthnRequestAbstractValid
             validationResponse.setValid(true);
             validationResponse.setPassive(authnReq.isPassive());
             validationResponse.setForceAuthn(authnReq.isForceAuthn());
-            setAuthenticationContextClassRef(validationResponse);
+            setRequestedAuthnContext(validationResponse);
+            validationResponse.setNameIDPolicy(authnReq.getNameIDPolicy());
             Integer index = authnReq.getAttributeConsumingServiceIndex();
             if (index !=null && !(index < 1)){              //according the spec, should be an unsigned short
                 validationResponse.setAttributeConsumingServiceIndex(index);
@@ -154,13 +155,17 @@ public class SPInitSSOAuthnRequestValidator extends SSOAuthnRequestAbstractValid
         }
     }
 
-    private void setAuthenticationContextClassRef(SAMLSSOReqValidationResponseDTO validationResponse) {
-        if (authnReq.getRequestedAuthnContext() != null
-                && authnReq.getRequestedAuthnContext().getAuthnContextClassRefs() != null) {
-            authnReq.getRequestedAuthnContext().getAuthnContextClassRefs().stream().forEach(ref -> {
-                validationResponse.addAuthenticationContextClassRef(
-                        new SAMLAuthenticationContextClassRefDTO(ref.getAuthnContextClassRef()));
-            });
+    private void setRequestedAuthnContext(SAMLSSOReqValidationResponseDTO validationResponse) {
+        if (authnReq.getRequestedAuthnContext() != null) {
+            validationResponse.setRequestedAuthnContextComparison(
+                    authnReq.getRequestedAuthnContext().getComparison().toString());
+
+            if (authnReq.getRequestedAuthnContext().getAuthnContextClassRefs() != null) {
+                authnReq.getRequestedAuthnContext().getAuthnContextClassRefs().stream().forEach(ref -> {
+                    validationResponse.addAuthenticationContextClassRef(
+                            new SAMLAuthenticationContextClassRefDTO(ref.getAuthnContextClassRef()));
+                });
+            }
         }
     }
 }

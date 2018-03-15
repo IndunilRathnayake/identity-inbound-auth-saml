@@ -538,6 +538,9 @@ public class SAMLSSOProviderServlet extends HttpServlet {
         sessionDTO.setPassiveAuth(signInRespDTO.isPassive());
         sessionDTO.setValidationRespDTO(signInRespDTO);
         sessionDTO.setIdPInitSSO(signInRespDTO.isIdPInitSSO());
+        if(signInRespDTO.getRequestedAttributes() != null) {
+            sessionDTO.setAttributesInRequest(true);
+        }
 
         String sessionDataKey = UUIDGenerator.generateUUID();
         addSessionDataToCache(sessionDataKey, sessionDTO);
@@ -576,6 +579,8 @@ public class SAMLSSOProviderServlet extends HttpServlet {
                     .map(acr -> acr.getAuthenticationContextClassReference()).collect(Collectors.toList());
             req.setAttribute(ACR_VALUES_ATTRIBUTE, acrList);
         }
+        //Add user atributes
+        req.setAttribute(SAMLSSOConstants.REQUESTED_ATTRIBUTES, signInRespDTO.getRequestedAttributes());
         sendRequestToFramework(req, resp, sessionDataKey, FrameworkConstants.RequestType.CLAIM_TYPE_SAML_SSO);
     }
 
@@ -1352,6 +1357,7 @@ public class SAMLSSOProviderServlet extends HttpServlet {
         if (!(sessionDTO.getAttributeConsumingServiceIndex() < 1)) {
             authnReqDTO.setAttributeConsumingServiceIndex(sessionDTO.getAttributeConsumingServiceIndex());
         }
+        authnReqDTO.setAttributesInRequest(sessionDTO.isAttributesInRequest());
     }
 
     private void populateAuthnReqDTOWithRequiredServiceProviderConfigs(SAMLSSOAuthnReqDTO authnReqDTO,

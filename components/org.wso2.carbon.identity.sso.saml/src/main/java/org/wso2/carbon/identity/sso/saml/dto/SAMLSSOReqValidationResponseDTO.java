@@ -18,11 +18,14 @@
 package org.wso2.carbon.identity.sso.saml.dto;
 
 import org.apache.commons.lang.StringUtils;
+import org.opensaml.saml2.core.NameIDPolicy;
+import org.wso2.carbon.identity.application.common.model.ClaimMapping;
 
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 public class SAMLSSOReqValidationResponseDTO implements Serializable {
 
@@ -54,6 +57,9 @@ public class SAMLSSOReqValidationResponseDTO implements Serializable {
     private String digestAlgorithmUri;
     private int attributeConsumingServiceIndex = 0;
     private List<SAMLAuthenticationContextClassRefDTO> authenticationContextClassRefList;
+    private String requestedAuthnContextComparison;
+    private List<ClaimMapping> requestedAttributes;
+    private NameIDPolicy nameIDPolicy;
 
     public String getDigestAlgorithmUri() {
         return digestAlgorithmUri;
@@ -320,5 +326,33 @@ public class SAMLSSOReqValidationResponseDTO implements Serializable {
             authenticationContextClassRefList = new ArrayList<>();
         }
         authenticationContextClassRefList.add(authenticationContextClassRefDTO);
+    }
+
+    public List<ClaimMapping> getRequestedAttributes() {
+        return requestedAttributes;
+    }
+
+    public void setRequestedAttributes(List<ClaimMapping> requestedAttributes) {
+        if (this.requestedAttributes == null) {
+            this.requestedAttributes = requestedAttributes;
+        } else {
+            this.requestedAttributes.addAll(requestedAttributes);
+        }
+    }
+
+    public String getRequestedAuthnContextComparison() {
+        return requestedAuthnContextComparison;
+    }
+
+    public void setRequestedAuthnContextComparison(String requestedAuthnContextComparison) {
+        this.requestedAuthnContextComparison = requestedAuthnContextComparison;
+    }
+
+    public void setNameIDPolicy(NameIDPolicy nameIDPolicy) {
+        this.nameIDPolicy = nameIDPolicy;
+    }
+
+    public NameIDPolicy getNameIDPolicy() {
+        return nameIDPolicy;
     }
 }

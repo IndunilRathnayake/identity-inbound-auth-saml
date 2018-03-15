@@ -1213,7 +1213,7 @@ public class SAMLSSOUtil {
                 if (StringUtils.isNotBlank(spDO.getAttributeConsumingServiceIndex()) && spDO
                         .isEnableAttributesByDefault()) {
                     index = Integer.parseInt(spDO.getAttributeConsumingServiceIndex());
-                } else {
+                } else if(!authnReqDTO.isAttributesInRequest()) {
                     return Collections.emptyMap();
                 }
             } else {
@@ -1235,9 +1235,10 @@ public class SAMLSSOUtil {
          * IMPORTANT : checking if the consumer index in the request matches the
 		 * given id to the SP
 		 */
-        if (spDO.getAttributeConsumingServiceIndex() == null ||
-                "".equals(spDO.getAttributeConsumingServiceIndex()) ||
-                index != Integer.parseInt(spDO.getAttributeConsumingServiceIndex())) {
+        if (((spDO.getAttributeConsumingServiceIndex() == null ||
+                "".equals(spDO.getAttributeConsumingServiceIndex())) &&
+                !authnReqDTO.isAttributesInRequest()) ||
+                (index !=0 && index != Integer.parseInt(spDO.getAttributeConsumingServiceIndex()))) {
             if (log.isDebugEnabled()) {
                 log.debug("Invalid AttributeConsumingServiceIndex in AuthnRequest");
             }

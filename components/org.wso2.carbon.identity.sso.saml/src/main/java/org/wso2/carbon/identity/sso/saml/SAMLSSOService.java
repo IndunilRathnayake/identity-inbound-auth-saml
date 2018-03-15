@@ -27,13 +27,12 @@ import org.wso2.carbon.identity.sso.saml.dto.QueryParamDTO;
 import org.wso2.carbon.identity.sso.saml.dto.SAMLSSOAuthnReqDTO;
 import org.wso2.carbon.identity.sso.saml.dto.SAMLSSOReqValidationResponseDTO;
 import org.wso2.carbon.identity.sso.saml.dto.SAMLSSORespDTO;
+import org.wso2.carbon.identity.sso.saml.extension.eidas.EidasExtensionProcessor;
 import org.wso2.carbon.identity.sso.saml.processors.IdPInitLogoutRequestProcessor;
 import org.wso2.carbon.identity.sso.saml.processors.IdPInitSSOAuthnRequestProcessor;
 import org.wso2.carbon.identity.sso.saml.processors.SPInitLogoutRequestProcessor;
 import org.wso2.carbon.identity.sso.saml.processors.SPInitSSOAuthnRequestProcessor;
 import org.wso2.carbon.identity.sso.saml.util.SAMLSSOUtil;
-import org.wso2.carbon.identity.sso.saml.validators.IdPInitSSOAuthnRequestValidator;
-import org.wso2.carbon.identity.sso.saml.validators.SPInitSSOAuthnRequestValidator;
 import org.wso2.carbon.identity.sso.saml.validators.SSOAuthnRequestValidator;
 
 public class SAMLSSOService {
@@ -91,6 +90,11 @@ public class SAMLSSOService {
             validationResp.setQueryString(queryString);
             validationResp.setRpSessionId(rpSessionId);
             validationResp.setIdPInitSSO(false);
+
+            if(((AuthnRequest) request).getExtensions() != null) {
+                EidasExtensionProcessor eidasExtensionProcessor = new EidasExtensionProcessor();
+                eidasExtensionProcessor.processExtensions((AuthnRequest) request, validationResp);
+            }
 
             return validationResp;
         } else if (request instanceof LogoutRequest) {

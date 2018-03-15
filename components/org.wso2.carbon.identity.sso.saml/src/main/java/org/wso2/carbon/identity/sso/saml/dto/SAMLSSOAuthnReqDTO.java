@@ -72,6 +72,7 @@ public class SAMLSSOAuthnReqDTO implements Serializable {
     private String keyEncryptionAlgorithmUri;
     private boolean isAssertionQueryRequestProfileEnabled;
     private Map<String, List<AuthenticationContextProperty>> idpAuthenticationContextProperties;
+    private boolean attributesInRequest = false;
 
     public String getDigestAlgorithmUri() {
         return digestAlgorithmUri;
@@ -485,5 +486,13 @@ public class SAMLSSOAuthnReqDTO implements Serializable {
             authenticationContextProperties = idpAuthenticationContextProperties.get(propertyName);
         }
         authenticationContextProperties.add(authenticationContextProperty);
+    }
+
+    public void setAttributesInRequest(boolean attributesInRequest) {
+        this.attributesInRequest = attributesInRequest;
+    }
+
+    public boolean isAttributesInRequest() {
+        return attributesInRequest;
     }
 }

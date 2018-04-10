@@ -19,6 +19,7 @@ package org.wso2.carbon.identity.sso.saml.builders.signature;
 
 import org.apache.xml.security.c14n.Canonicalizer;
 import org.opensaml.common.impl.SAMLObjectContentReference;
+import org.opensaml.saml2.core.EncryptedAssertion;
 import org.opensaml.saml2.core.RequestAbstractType;
 import org.opensaml.xml.XMLObject;
 import org.opensaml.xml.XMLObjectBuilder;

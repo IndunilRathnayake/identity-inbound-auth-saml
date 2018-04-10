@@ -80,26 +80,6 @@ public class EidasSPInitSSOAuthnRequestValidator extends SPInitSSOAuthnRequestVa
             validationResponseDTO.setValid(false);
             return validationResponseDTO;
         }
-
-        if(validationResponseDTO.getNameIDPolicy() == null) {
-            validationResponseDTO.setValid(false);
-            String errorResp = null;
-            try {
-                errorResp = SAMLSSOUtil.buildErrorResponse(
-                        SAMLSSOConstants.StatusCodes.REQUESTOR_ERROR,
-                        "NameIDPolicy SHOULD be included.",
-                        validationResponseDTO.getDestination());
-            } catch (IOException e) {
-                throw IdentityException.error("Issue in building error response.", e);
-            }
-            if (log.isDebugEnabled()) {
-                log.debug("Invalid Request message. NameIDPolicy is not included");
-            }
-            validationResponseDTO.setResponse(errorResp);
-            validationResponseDTO.setValid(false);
-            return validationResponseDTO;
-        }
-
         return validationResponseDTO;
     }
 }

@@ -59,7 +59,6 @@ public class SAMLSSOReqValidationResponseDTO implements Serializable {
     private List<SAMLAuthenticationContextClassRefDTO> authenticationContextClassRefList;
     private String requestedAuthnContextComparison;
     private List<ClaimMapping> requestedAttributes;
-    private NameIDPolicy nameIDPolicy;
 
     public String getDigestAlgorithmUri() {
         return digestAlgorithmUri;
@@ -346,13 +345,5 @@ public class SAMLSSOReqValidationResponseDTO implements Serializable {
 
     public void setRequestedAuthnContextComparison(String requestedAuthnContextComparison) {
         this.requestedAuthnContextComparison = requestedAuthnContextComparison;
-    }
-
-    public void setNameIDPolicy(NameIDPolicy nameIDPolicy) {
-        this.nameIDPolicy = nameIDPolicy;
-    }
-
-    public NameIDPolicy getNameIDPolicy() {
-        return nameIDPolicy;
     }
 }

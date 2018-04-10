@@ -24,6 +24,7 @@ import org.joda.time.DateTime;
 import org.opensaml.saml2.core.Assertion;
 import org.opensaml.saml2.core.AuthnRequest;
 import org.opensaml.saml2.core.Response;
+import org.opensaml.saml2.core.impl.AssertionBuilder;
 import org.wso2.carbon.identity.base.IdentityException;
 import org.wso2.carbon.identity.core.persistence.JDBCPersistenceManager;
 import org.wso2.carbon.identity.core.util.IdentityDatabaseUtil;
@@ -65,19 +66,44 @@ public class EidasSAMLAssertionBuilder extends DefaultSAMLAssertionBuilder
      * @throws IdentityException If unable to collect issuer information
      */
     @Override
-    public Assertion buildAssertion(Response response, SAMLSSOAuthnReqDTO samlssoAuthnReqDTO, DateTime notOnOrAfter, String sessionId)
+    public Assertion buildAssertion(Response response, SAMLSSOAuthnReqDTO authReqDTO, DateTime notOnOrAfter, String sessionId)
             throws IdentityException {
 
-        Assertion assertion = super.buildAssertion(response, samlssoAuthnReqDTO, notOnOrAfter, sessionId);
+        try {
+            DateTime currentTime = new DateTime();
+            Assertion samlAssertion = new AssertionBuilder().buildObject();
 
-        String samlReq = samlssoAuthnReqDTO.getRequestMessageString();
+            this.setBasicInfo(samlAssertion, currentTime);
 
-        AuthnRequest authRequest = (AuthnRequest) SAMLSSOUtil.unmarshall(SAMLSSOUtil.decodeForPost(samlReq));
+            this.setSubject(authReqDTO, notOnOrAfter, samlAssertion);
 
-        if (authRequest.getExtensions() != null) {
-            EidasExtensionProcessor eidasExtensionProcessor = new EidasExtensionProcessor();
-            eidasExtensionProcessor.processExtensions(response, authRequest, assertion);
+            this.addAuthStatement(authReqDTO, sessionId, samlAssertion);
+            /*
+                * If <AttributeConsumingServiceIndex> element is in the <AuthnRequest> and according to
+                * the spec 2.0 the subject MUST be in the assertion
+                */
+
+            this.addAttributeStatements(authReqDTO, samlAssertion);
+
+            String samlReq = authReqDTO.getRequestMessageString();
+
+            AuthnRequest authRequest = (AuthnRequest) SAMLSSOUtil.unmarshall(SAMLSSOUtil.decodeForPost(samlReq));
+
+            this.setConditions(authReqDTO, currentTime, notOnOrAfter, samlAssertion);
+
+            if (authRequest.getExtensions() != null) {
+                EidasExtensionProcessor eidasExtensionProcessor = new EidasExtensionProcessor();
+                eidasExtensionProcessor.processExtensions(response, authRequest, samlAssertion);
+            }
+
+            this.setSignature(authReqDTO, samlAssertion);
+
+            return samlAssertion;
+
+        } catch (Exception e) {
+            log.error("Error when reading claim values for generating SAML Response", e);
+            throw IdentityException.error(
+                    "Error when reading claim values for generating SAML Response", e);
         }
-        return assertion;
     }
 }

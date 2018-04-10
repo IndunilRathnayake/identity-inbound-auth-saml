@@ -24,21 +24,7 @@ import org.joda.time.DateTime;
 import org.opensaml.Configuration;
 import org.opensaml.common.SAMLVersion;
 import org.opensaml.saml1.core.NameIdentifier;
-import org.opensaml.saml2.core.Assertion;
-import org.opensaml.saml2.core.Attribute;
-import org.opensaml.saml2.core.AttributeStatement;
-import org.opensaml.saml2.core.AttributeValue;
-import org.opensaml.saml2.core.Audience;
-import org.opensaml.saml2.core.AudienceRestriction;
-import org.opensaml.saml2.core.AuthenticatingAuthority;
-import org.opensaml.saml2.core.AuthnContext;
-import org.opensaml.saml2.core.AuthnContextClassRef;
-import org.opensaml.saml2.core.AuthnStatement;
-import org.opensaml.saml2.core.Conditions;
-import org.opensaml.saml2.core.NameID;
-import org.opensaml.saml2.core.Subject;
-import org.opensaml.saml2.core.SubjectConfirmation;
-import org.opensaml.saml2.core.SubjectConfirmationData;
+import org.opensaml.saml2.core.*;
 import org.opensaml.saml2.core.impl.AssertionBuilder;
 import org.opensaml.saml2.core.impl.AttributeBuilder;
 import org.opensaml.saml2.core.impl.AttributeStatementBuilder;
@@ -81,7 +67,7 @@ public class DefaultSAMLAssertionBuilder implements SAMLAssertionBuilder {
     }
 
     @Override
-    public Assertion buildAssertion(SAMLSSOAuthnReqDTO authReqDTO, DateTime notOnOrAfter, String sessionId) throws IdentityException {
+    public Assertion buildAssertion(Response response, SAMLSSOAuthnReqDTO authReqDTO, DateTime notOnOrAfter, String sessionId) throws IdentityException {
         try {
             DateTime currentTime = new DateTime();
             Assertion samlAssertion = new AssertionBuilder().buildObject();

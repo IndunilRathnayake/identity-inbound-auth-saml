@@ -18,11 +18,16 @@
 
 package org.wso2.carbon.identity.sso.saml.extension.eidas;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.opensaml.saml1.core.NameIdentifier;
 import org.opensaml.saml2.common.Extensions;
 import org.opensaml.saml2.core.*;
+import org.opensaml.saml2.core.impl.NameIDBuilder;
+import org.opensaml.saml2.core.impl.NameIDImpl;
 import org.opensaml.xml.XMLObject;
+import org.opensaml.xml.schema.impl.XSAnyImpl;
 import org.w3c.dom.NodeList;
 import org.wso2.carbon.identity.application.common.model.Claim;
 import org.wso2.carbon.identity.application.common.model.ClaimMapping;
@@ -38,65 +43,71 @@ import java.util.List;
 
 public class EidasExtensionProcessor implements ExtensionProcessor {
     private static Log log = LogFactory.getLog(EidasExtensionProcessor.class);
+    private static String errorMsg = "202010 - Mandatory Attribute not found.";
 
     public void processExtensions(AuthnRequest request, SAMLSSOReqValidationResponseDTO validationResp) throws IdentityException {
         log.debug("Process the extensions for EIDAS messageFormat");
 
         Extensions extensions = request.getExtensions();
-        XMLObject spType = extensions.getUnknownXMLObjects(SPType.DEFAULT_ELEMENT_NAME).get(0);
+        if (extensions != null) {
+            if (CollectionUtils.isNotEmpty(extensions.getUnknownXMLObjects(SPType.DEFAULT_ELEMENT_NAME))) {
+                XMLObject spType = extensions.getUnknownXMLObjects(SPType.DEFAULT_ELEMENT_NAME).get(0);
 
-        if (!spType.getDOM().getNodeValue().equals(EidasConstants.EIDAS_SP_TYPE_PUBLIC) ||
-                !spType.getDOM().getNodeValue().equals(EidasConstants.EIDAS_SP_TYPE_PRIVATE)) {
-            validationResp.setValid(false);
-            String errorResp = null;
-            try {
-                errorResp = SAMLSSOUtil.buildErrorResponse(
-                        SAMLSSOConstants.StatusCodes.REQUESTOR_ERROR, "SP Type should be either public or private.",
-                        validationResp.getDestination());
-            } catch (IOException e) {
-                throw IdentityException.error("Issue in building error response.", e);
-            }
-            if (log.isDebugEnabled()) {
-                log.debug("Invalid Request message. SP Type found " + spType.getDOM().getNodeValue());
-            }
-            validationResp.setResponse(errorResp);
-            validationResp.setValid(false);
-        }
-
-
-        XMLObject requestedAttrs = extensions.getUnknownXMLObjects(RequestedAttributes.DEFAULT_ELEMENT_NAME).get(0);
-        NodeList nodeList = requestedAttrs.getDOM().getChildNodes();
-        List<ClaimMapping> claimMappings = new ArrayList<>();
-
-        validationResp.setRequestedAttributes(new ArrayList<>());
-        for (int i = 0; i < nodeList.getLength(); i++) {
-            ClaimMapping claimMapping = new ClaimMapping();
-            Claim remoteClaim = new Claim();
-            String nameFormat = nodeList.item(i).getAttributes().getNamedItem(EidasConstants.EIDAS_ATTRIBUTE_NAME_FORMAT)
-                    .getNodeValue();
-            if (!nameFormat.equals(EidasConstants.EIDAS_ATTRIBUTE_NAME_FORMAT_URI)) {
-                validationResp.setValid(false);
-                String errorResp = null;
-                try {
-                    errorResp = SAMLSSOUtil.buildErrorResponse(
-                            SAMLSSOConstants.StatusCodes.REQUESTOR_ERROR, "NameFormat should be " +
-                                    EidasConstants.EIDAS_ATTRIBUTE_NAME_FORMAT_URI,
-                            validationResp.getDestination());
-                } catch (IOException e) {
-                    throw IdentityException.error("Issue in building error response.", e);
+                if (spType != null && !((XSAnyImpl) spType).getTextContent().equals(EidasConstants.EIDAS_SP_TYPE_PUBLIC) &&
+                        !((XSAnyImpl) spType).getTextContent().equals(EidasConstants.EIDAS_SP_TYPE_PRIVATE)) {
+                    validationResp.setValid(false);
+                    String errorResp = null;
+                    try {
+                        errorResp = SAMLSSOUtil.buildErrorResponse(
+                                SAMLSSOConstants.StatusCodes.REQUESTOR_ERROR, "SP Type should be either public or private.",
+                                validationResp.getDestination());
+                    } catch (IOException e) {
+                        throw IdentityException.error("Issue in building error response.", e);
+                    }
+                    if (log.isDebugEnabled()) {
+                        log.debug("Invalid Request message. SP Type found " + spType.getDOM().getNodeValue());
+                    }
+                    validationResp.setResponse(errorResp);
+                    validationResp.setValid(false);
                 }
-                if (log.isDebugEnabled()) {
-                    log.debug("Invalid Request message. NameFormat found " + nameFormat);
-                }
-                validationResp.setResponse(errorResp);
-                validationResp.setValid(false);
             }
-            remoteClaim.setClaimUri(nodeList.item(i).getAttributes().getNamedItem(EidasConstants.EIDAS_ATTRIBUTE_NAME)
-                    .getNodeValue());
-            claimMapping.setRemoteClaim(remoteClaim);
-            claimMapping.setRequested(Boolean.parseBoolean(nodeList.item(i).getAttributes().getNamedItem(
-                    EidasConstants.EIDAS_ATTRIBUTE_REQUIRED).getNodeValue()));
-            validationResp.getRequestedAttributes().add(claimMapping);
+
+            if (CollectionUtils.isNotEmpty(extensions.getUnknownXMLObjects(RequestedAttributes.DEFAULT_ELEMENT_NAME))) {
+                XMLObject requestedAttrs = extensions.getUnknownXMLObjects(RequestedAttributes.DEFAULT_ELEMENT_NAME).get(0);
+                NodeList nodeList = requestedAttrs.getDOM().getChildNodes();
+                List<ClaimMapping> claimMappings = new ArrayList<>();
+
+                validationResp.setRequestedAttributes(new ArrayList<>());
+                for (int i = 0; i < nodeList.getLength(); i++) {
+                    ClaimMapping claimMapping = new ClaimMapping();
+                    Claim remoteClaim = new Claim();
+                    String nameFormat = nodeList.item(i).getAttributes().getNamedItem(EidasConstants.EIDAS_ATTRIBUTE_NAME_FORMAT)
+                            .getNodeValue();
+                    if (!nameFormat.equals(EidasConstants.EIDAS_ATTRIBUTE_NAME_FORMAT_URI)) {
+                        validationResp.setValid(false);
+                        String errorResp = null;
+                        try {
+                            errorResp = SAMLSSOUtil.buildErrorResponse(
+                                    SAMLSSOConstants.StatusCodes.REQUESTOR_ERROR, "NameFormat should be " +
+                                            EidasConstants.EIDAS_ATTRIBUTE_NAME_FORMAT_URI,
+                                    validationResp.getDestination());
+                        } catch (IOException e) {
+                            throw IdentityException.error("Issue in building error response.", e);
+                        }
+                        if (log.isDebugEnabled()) {
+                            log.debug("Invalid Request message. NameFormat found " + nameFormat);
+                        }
+                        validationResp.setResponse(errorResp);
+                        validationResp.setValid(false);
+                    }
+                    remoteClaim.setClaimUri(nodeList.item(i).getAttributes().getNamedItem(EidasConstants.EIDAS_ATTRIBUTE_NAME)
+                            .getNodeValue());
+                    claimMapping.setRemoteClaim(remoteClaim);
+                    claimMapping.setRequested(Boolean.parseBoolean(nodeList.item(i).getAttributes().getNamedItem(
+                            EidasConstants.EIDAS_ATTRIBUTE_REQUIRED).getNodeValue()));
+                    validationResp.getRequestedAttributes().add(claimMapping);
+                }
+            }
         }
     }
 
@@ -104,11 +115,22 @@ public class EidasExtensionProcessor implements ExtensionProcessor {
         log.debug("Process the extensions for EIDAS messageFormat");
 
         Extensions extensions = request.getExtensions();
+        AuthnContextClassRef authnContextClassRefInRequest = request.getRequestedAuthnContext()
+                .getAuthnContextClassRefs().get(0);
+        assertion.getAuthnStatements().get(0).getAuthnContext().getAuthnContextClassRef().setAuthnContextClassRef(
+                authnContextClassRefInRequest.getAuthnContextClassRef());
+
         XMLObject requestedAttrs = extensions.getUnknownXMLObjects(RequestedAttributes.DEFAULT_ELEMENT_NAME).get(0);
         NodeList nodeList = requestedAttrs.getDOM().getChildNodes();
 
         List<AttributeStatement> attributeStatements = assertion.getAttributeStatements();
         List<String> mandatoryClaims = new ArrayList<>();
+
+        for (AttributeStatement attributeStatement : attributeStatements) {
+            for (Attribute attribute : attributeStatement.getAttributes()) {
+                attribute.setNameFormat(EidasConstants.EIDAS_ATTRIBUTE_NAME_FORMAT_URI);
+            }
+        }
 
         for (int i = 0; i < nodeList.getLength(); i++) {
             String spClaimUri = nodeList.item(i).getAttributes().getNamedItem(EidasConstants.EIDAS_ATTRIBUTE_NAME)
@@ -139,13 +161,14 @@ public class EidasExtensionProcessor implements ExtensionProcessor {
         }
 
         if (!isMandatoryClaimPresent) {
-            response.setStatus(SAMLSSOUtil.buildStatus(SAMLSSOConstants.StatusCodes.SUCCESS_CODE, null));
-        }
+            response.setStatus(SAMLSSOUtil.buildResponseStatus(SAMLSSOConstants.StatusCodes.IDENTITY_PROVIDER_ERROR,
+                    errorMsg));
+            assertion.getAttributeStatements().clear();
 
-        for (AttributeStatement attributeStatement : attributeStatements) {
-            for (Attribute attribute : attributeStatement.getAttributes()) {
-                attribute.setNameFormat(EidasConstants.EIDAS_ATTRIBUTE_NAME_FORMAT_URI);
-            }
+            NameID nameId = new NameIDBuilder().buildObject();
+            nameId.setValue("NotAvailable");
+            nameId.setFormat(NameIdentifier.UNSPECIFIED);
+            assertion.getSubject().setNameID(nameId);
         }
     }
 }

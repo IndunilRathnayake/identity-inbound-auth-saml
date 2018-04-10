@@ -24,6 +24,7 @@ import org.opensaml.common.SAMLVersion;
 import org.opensaml.saml2.core.AuthnRequest;
 import org.opensaml.saml2.core.Issuer;
 import org.opensaml.saml2.core.Subject;
+import org.opensaml.saml2.core.impl.NameIDPolicyImpl;
 import org.wso2.carbon.identity.base.IdentityException;
 import org.wso2.carbon.identity.sso.saml.SAMLSSOConstants;
 import org.wso2.carbon.identity.sso.saml.dto.SAMLAuthenticationContextClassRefDTO;
@@ -141,7 +142,6 @@ public class SPInitSSOAuthnRequestValidator extends SSOAuthnRequestAbstractValid
             validationResponse.setPassive(authnReq.isPassive());
             validationResponse.setForceAuthn(authnReq.isForceAuthn());
             setRequestedAuthnContext(validationResponse);
-            validationResponse.setNameIDPolicy(authnReq.getNameIDPolicy());
             Integer index = authnReq.getAttributeConsumingServiceIndex();
             if (index !=null && !(index < 1)){              //according the spec, should be an unsigned short
                 validationResponse.setAttributeConsumingServiceIndex(index);

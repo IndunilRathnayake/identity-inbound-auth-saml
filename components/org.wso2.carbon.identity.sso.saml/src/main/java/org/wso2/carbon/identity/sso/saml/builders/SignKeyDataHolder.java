@@ -67,6 +67,7 @@ public class SignKeyDataHolder implements X509Credential {
     public static final String SECURITY_SAML_SIGN_KEY_STORE_PASSWORD = "Security.SAMLSignKeyStore.Password";
     public static final String SECURITY_SAML_SIGN_KEY_STORE_KEY_ALIAS = "Security.SAMLSignKeyStore.KeyAlias";
     public static final String SECURITY_SAML_SIGN_KEY_STORE_KEY_PASSWORD = "Security.SAMLSignKeyStore.KeyPassword";
+    public static final String SECURITY_SAML_SIGN_KEY_STORE_KEY_ALGO = "Security.SAMLSignKeyStore.KeyAlgo";
 
     private String signatureAlgorithm = null;
     private X509Certificate[] issuerCerts = null;
@@ -256,6 +257,8 @@ public class SignKeyDataHolder implements X509Credential {
                     SECURITY_SAML_SIGN_KEY_STORE_KEY_ALIAS);
             char[] keyPassword = ServerConfiguration.getInstance().getFirstProperty(
                     SECURITY_SAML_SIGN_KEY_STORE_KEY_PASSWORD).toCharArray();
+            String keyAlgo = ServerConfiguration.getInstance().getFirstProperty(
+                    SECURITY_SAML_SIGN_KEY_STORE_KEY_ALGO);
             Key key = superTenantSignKeyStore.getKey(keyAlias, keyPassword);
 
             if (key instanceof PrivateKey) {
@@ -264,7 +267,11 @@ public class SignKeyDataHolder implements X509Credential {
                 Certificate[] certificates = superTenantSignKeyStore.getCertificateChain(keyAlias);
                 issuerCerts = Arrays.copyOf(certificates, certificates.length, X509Certificate[].class);
 
-                signatureAlgorithm = XMLSignature.ALGO_ID_SIGNATURE_RSA;
+                if(keyAlgo != null) {
+                    signatureAlgorithm = keyAlgo;
+                } else {
+                    signatureAlgorithm = XMLSignature.ALGO_ID_SIGNATURE_RSA;
+                }
                 Certificate cert = superTenantSignKeyStore.getCertificate(keyAlias);
                 PublicKey publicKey = cert.getPublicKey();
                 String pubKeyAlgo = publicKey.getAlgorithm();

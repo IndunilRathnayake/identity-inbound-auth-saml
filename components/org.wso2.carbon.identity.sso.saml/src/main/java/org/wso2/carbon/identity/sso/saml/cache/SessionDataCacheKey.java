@@ -20,7 +20,7 @@ package org.wso2.carbon.identity.sso.saml.cache;
 
 public class SessionDataCacheKey extends CacheKey {
 
-    private static final long serialVersionUID = -1414485745666304223L;
+    private static final long serialVersionUID = -1414485.4.7-SNAPSHOT66304223L;
 
     private String sessionDataKey;
 

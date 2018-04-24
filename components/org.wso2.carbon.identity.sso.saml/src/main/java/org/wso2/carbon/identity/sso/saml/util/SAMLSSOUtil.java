@@ -33,7 +33,13 @@ import org.opensaml.saml2.core.LogoutRequest;
 import org.opensaml.saml2.core.LogoutResponse;
 import org.opensaml.saml2.core.RequestAbstractType;
 import org.opensaml.saml2.core.Response;
+import org.opensaml.saml2.core.Status;
+import org.opensaml.saml2.core.StatusCode;
+import org.opensaml.saml2.core.StatusMessage;
 import org.opensaml.saml2.core.impl.IssuerBuilder;
+import org.opensaml.saml2.core.impl.StatusBuilder;
+import org.opensaml.saml2.core.impl.StatusCodeBuilder;
+import org.opensaml.saml2.core.impl.StatusMessageBuilder;
 import org.opensaml.xml.ConfigurationException;
 import org.opensaml.xml.XMLObject;
 import org.opensaml.xml.io.Marshaller;
@@ -85,6 +91,7 @@ import org.wso2.carbon.identity.sso.saml.dto.QueryParamDTO;
 import org.wso2.carbon.identity.sso.saml.dto.SAMLSSOAuthnReqDTO;
 import org.wso2.carbon.identity.sso.saml.dto.SingleLogoutRequestDTO;
 import org.wso2.carbon.identity.sso.saml.exception.IdentitySAML2SSOException;
+import org.wso2.carbon.identity.sso.saml.extension.ExtensionProcessor;
 import org.wso2.carbon.identity.sso.saml.processors.IdPInitLogoutRequestProcessor;
 import org.wso2.carbon.identity.sso.saml.processors.IdPInitSSOAuthnRequestProcessor;
 import org.wso2.carbon.identity.sso.saml.processors.SPInitLogoutRequestProcessor;
@@ -186,6 +193,7 @@ public class SAMLSSOUtil {
     private static String sPInitSSOAuthnRequestProcessorClassName = null;
     private static String sPInitLogoutRequestProcessorClassName = null;
     private static ApplicationManagementService applicationMgtService;
+    private static List<ExtensionProcessor> extensionProcessors;
 
     private SAMLSSOUtil() {
     }
@@ -292,6 +300,18 @@ public class SAMLSSOUtil {
 
     public static void setHttpService(HttpService httpService) {
         SAMLSSOUtil.httpService = httpService;
+    }
+
+    public static List<ExtensionProcessor> getExtensionProcessors() {
+        return extensionProcessors;
+    }
+
+    public static void setExtensionProcessors(ExtensionProcessor extensionProcessor) {
+        if(SAMLSSOUtil.extensionProcessors == null) {
+            SAMLSSOUtil.extensionProcessors = new ArrayList<>();
+        } else {
+            SAMLSSOUtil.extensionProcessors.add(extensionProcessor);
+        }
     }
 
     /**
@@ -713,7 +733,7 @@ public class SAMLSSOUtil {
         }
     }
 
-    public static Assertion buildSAMLAssertion(SAMLSSOAuthnReqDTO authReqDTO, DateTime notOnOrAfter,
+    public static Assertion buildSAMLAssertion(Response response, SAMLSSOAuthnReqDTO authReqDTO, DateTime notOnOrAfter,
                                                String sessionId) throws IdentityException {
 
         doBootstrap();
@@ -736,7 +756,7 @@ public class SAMLSSOUtil {
                 samlAssertionBuilder = (SAMLAssertionBuilder) Class.forName(assertionBuilderClass).newInstance();
                 samlAssertionBuilder.init();
             }
-            return samlAssertionBuilder.buildAssertion(authReqDTO, notOnOrAfter, sessionId);
+            return samlAssertionBuilder.buildAssertion(response, authReqDTO, notOnOrAfter, sessionId);
 
         } catch (ClassNotFoundException e) {
             throw IdentityException.error("Class not found: "
@@ -1213,7 +1233,7 @@ public class SAMLSSOUtil {
                 if (StringUtils.isNotBlank(spDO.getAttributeConsumingServiceIndex()) && spDO
                         .isEnableAttributesByDefault()) {
                     index = Integer.parseInt(spDO.getAttributeConsumingServiceIndex());
-                } else {
+                } else if(!authnReqDTO.isAttributesInRequest()) {
                     return Collections.emptyMap();
                 }
             } else {
@@ -1235,9 +1255,10 @@ public class SAMLSSOUtil {
          * IMPORTANT : checking if the consumer index in the request matches the
 		 * given id to the SP
 		 */
-        if (spDO.getAttributeConsumingServiceIndex() == null ||
-                "".equals(spDO.getAttributeConsumingServiceIndex()) ||
-                index != Integer.parseInt(spDO.getAttributeConsumingServiceIndex())) {
+        if (((spDO.getAttributeConsumingServiceIndex() == null ||
+                "".equals(spDO.getAttributeConsumingServiceIndex())) &&
+                !authnReqDTO.isAttributesInRequest()) ||
+                (index !=0 && index != Integer.parseInt(spDO.getAttributeConsumingServiceIndex()))) {
             if (log.isDebugEnabled()) {
                 log.debug("Invalid AttributeConsumingServiceIndex in AuthnRequest");
             }
@@ -1638,32 +1659,35 @@ public class SAMLSSOUtil {
         }
 
     }
-    public static SSOAuthnRequestValidator getSPInitSSOAuthnRequestValidator(AuthnRequest authnRequest)  {
-        if (sPInitSSOAuthnRequestValidatorClassName == null || "".equals(sPInitSSOAuthnRequestValidatorClassName)) {
-            try {
-                return new SPInitSSOAuthnRequestValidator(authnRequest);
-            } catch (IdentityException e) {
-                log.error("Error while instantiating the SPInitSSOAuthnRequestValidator ", e);
-            }
-        } else {
-            try {
+    public static SSOAuthnRequestValidator getSPInitSSOAuthnRequestValidator(AuthnRequest authnRequest) {
+        SSOAuthnRequestValidator ssoAuthnRequestValidator = null;
+        try {
+            if (StringUtils.isNotBlank(sPInitSSOAuthnRequestValidatorClassName)) {
                 // Bundle class loader will cache the loaded class and returned
                 // the already loaded instance, hence calling this method
                 // multiple times doesn't cost.
                 Class clazz = Thread.currentThread().getContextClassLoader()
                         .loadClass(sPInitSSOAuthnRequestValidatorClassName);
-                return (SSOAuthnRequestValidator) clazz.getDeclaredConstructor(AuthnRequest.class).newInstance(authnRequest);
-
-            } catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {
-                log.error("Error while instantiating the SPInitSSOAuthnRequestValidator ", e);
-            } catch (NoSuchMethodException e) {
-                log.error("SP initiated authentication request validation class in run time does not have proper" +
-                        "constructors defined.");
-            } catch (InvocationTargetException e) {
-                log.error("Error in creating an instance of the class: " + sPInitSSOAuthnRequestValidatorClassName);
+                ssoAuthnRequestValidator = (SSOAuthnRequestValidator) clazz.getDeclaredConstructor(AuthnRequest.class)
+                        .newInstance(authnRequest);
+            } else if(IdentityUtil.getProperty(SAMLSSOConstants.SAML_SSO_SP_REQUEST_VALIDATOR_CONFIG_PATH) != null) {
+                Class clazz = Thread.currentThread().getContextClassLoader()
+                        .loadClass(IdentityUtil.getProperty(SAMLSSOConstants.SAML_SSO_SP_REQUEST_VALIDATOR_CONFIG_PATH)
+                                .trim());
+                ssoAuthnRequestValidator = (SSOAuthnRequestValidator) clazz.getDeclaredConstructor(AuthnRequest.class)
+                        .newInstance(authnRequest);
+            } else {
+                ssoAuthnRequestValidator = new SPInitSSOAuthnRequestValidator(authnRequest);
             }
+        } catch (ClassNotFoundException | IllegalAccessException | InstantiationException | IdentityException e) {
+            log.error("Error while instantiating the SPInitSSOAuthnRequestValidator ", e);
+        } catch (NoSuchMethodException e) {
+            log.error("SP initiated authentication request validation class in run time does not have proper" +
+                    "constructors defined.");
+        } catch (InvocationTargetException e) {
+            log.error("Error in creating an instance of the class: " + sPInitSSOAuthnRequestValidatorClassName);
         }
-        return null;
+        return ssoAuthnRequestValidator;
     }
 
     public static void setSPInitSSOAuthnRequestValidator(String sPInitSSOAuthnRequestValidator) {
@@ -1842,5 +1866,22 @@ public class SAMLSSOUtil {
         logoutReqDTO.setTenantDomain(tenantDomain);
 
         return logoutReqDTO;
+    }
+
+    public static Status buildResponseStatus(String statusCode, String statusMsg) {
+        Status stat = new StatusBuilder().buildObject();
+
+        // Set the status code
+        StatusCode statCode = new StatusCodeBuilder().buildObject();
+        statCode.setValue(statusCode);
+        stat.setStatusCode(statCode);
+
+        // Set the status Message
+        if (statusMsg != null) {
+            StatusMessage statMesssage = new StatusMessageBuilder().buildObject();
+            statMesssage.setMessage(statusMsg);
+            stat.setStatusMessage(statMesssage);
+        }
+        return stat;
     }
 }

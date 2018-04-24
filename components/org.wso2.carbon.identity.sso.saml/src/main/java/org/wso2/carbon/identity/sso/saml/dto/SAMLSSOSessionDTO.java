@@ -44,6 +44,7 @@ public class SAMLSSOSessionDTO implements Serializable {
     private boolean forceAuth;
     private boolean isIdPInitSLO;
     private int attributeConsumingServiceIndex = 0;
+    private boolean attributesInRequest = false;
 
     public String getHttpQueryString() {
         return httpQueryString;
@@ -204,5 +205,13 @@ public class SAMLSSOSessionDTO implements Serializable {
 
     public void setAttributeConsumingServiceIndex(int attributeConsumingServiceIndex) {
         this.attributeConsumingServiceIndex = attributeConsumingServiceIndex;
+    }
+
+    public void setAttributesInRequest(boolean attributesInRequest) {
+        this.attributesInRequest = attributesInRequest;
+    }
+
+    public boolean isAttributesInRequest() {
+        return attributesInRequest;
     }
 }

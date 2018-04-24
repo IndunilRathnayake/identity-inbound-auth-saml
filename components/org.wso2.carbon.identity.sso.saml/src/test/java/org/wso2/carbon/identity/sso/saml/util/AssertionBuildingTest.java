@@ -23,8 +23,10 @@ import org.apache.commons.lang.StringUtils;
 import org.joda.time.DateTime;
 import org.mockito.Mock;
 import org.opensaml.DefaultBootstrap;
+import org.opensaml.common.SAMLVersion;
 import org.opensaml.saml2.core.Assertion;
 import org.opensaml.saml2.core.AuthnRequest;
+import org.opensaml.saml2.core.Response;
 import org.opensaml.xml.security.x509.X509Credential;
 import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
@@ -44,10 +46,7 @@ import org.wso2.carbon.identity.core.model.SAMLSSOServiceProviderDO;
 import org.wso2.carbon.identity.core.persistence.IdentityPersistenceManager;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
-import org.wso2.carbon.identity.sso.saml.SAMLTestRequestBuilder;
-import org.wso2.carbon.identity.sso.saml.SSOServiceProviderConfigManager;
-import org.wso2.carbon.identity.sso.saml.TestConstants;
-import org.wso2.carbon.identity.sso.saml.TestUtils;
+import org.wso2.carbon.identity.sso.saml.*;
 import org.wso2.carbon.identity.sso.saml.dto.SAMLSSOAuthnReqDTO;
 import org.wso2.carbon.identity.sso.saml.validators.SSOAuthnRequestValidator;
 import org.wso2.carbon.idp.mgt.IdentityProviderManager;
@@ -301,7 +300,20 @@ public class AssertionBuildingTest extends PowerMockTestCase {
 
         authnReqDTO.setNameIDFormat(TestConstants.SAMPLE_NAME_ID_FORMAT);
         authnReqDTO.setIssuer(TestConstants.LOACALHOST_DOMAIN);
-        Assertion assertion = SAMLSSOUtil.buildSAMLAssertion(authnReqDTO, new DateTime(00000000L), TestConstants
+
+        Response response = new org.opensaml.saml2.core.impl.ResponseBuilder().buildObject();
+        response.setIssuer(SAMLSSOUtil.getIssuer());
+        response.setID(SAMLSSOUtil.createID());
+        if (!authnReqDTO.isIdPInitSSOEnabled()) {
+            response.setInResponseTo(authnReqDTO.getId());
+        }
+        response.setDestination(authnReqDTO.getAssertionConsumerURL());
+        response.setStatus(SAMLSSOUtil.buildResponseStatus(SAMLSSOConstants.StatusCodes.SUCCESS_CODE, null));
+        response.setVersion(SAMLVersion.VERSION_20);
+        DateTime issueInstant = new DateTime();
+        response.setIssueInstant(issueInstant);
+
+        Assertion assertion = SAMLSSOUtil.buildSAMLAssertion(response, authnReqDTO, new DateTime(00000000L), TestConstants
                 .SESSION_ID);
         return assertion;
     }

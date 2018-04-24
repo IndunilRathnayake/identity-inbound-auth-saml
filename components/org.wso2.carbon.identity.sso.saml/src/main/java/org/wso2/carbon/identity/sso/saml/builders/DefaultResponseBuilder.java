@@ -58,13 +58,13 @@ public class DefaultResponseBuilder implements ResponseBuilder {
             response.setInResponseTo(authReqDTO.getId());
         }
         response.setDestination(authReqDTO.getAssertionConsumerURL());
-        response.setStatus(buildStatus(SAMLSSOConstants.StatusCodes.SUCCESS_CODE, null));
+        response.setStatus(SAMLSSOUtil.buildResponseStatus(SAMLSSOConstants.StatusCodes.SUCCESS_CODE, null));
         response.setVersion(SAMLVersion.VERSION_20);
         DateTime issueInstant = new DateTime();
         DateTime notOnOrAfter = new DateTime(issueInstant.getMillis()
                 + SAMLSSOUtil.getSAMLResponseValidityPeriod() * 60 * 1000L);
         response.setIssueInstant(issueInstant);
-        Assertion assertion = SAMLSSOUtil.buildSAMLAssertion(authReqDTO, notOnOrAfter, sessionId);
+        Assertion assertion = SAMLSSOUtil.buildSAMLAssertion(response, authReqDTO, notOnOrAfter, sessionId);
 
         if (authReqDTO.isDoEnableEncryptedAssertion()) {
 
@@ -102,7 +102,7 @@ public class DefaultResponseBuilder implements ResponseBuilder {
         response.setID(SAMLSSOUtil.createID());
         response.setInResponseTo(authReqDTO.getId());
         response.setDestination(authReqDTO.getAssertionConsumerURL());
-        response.setStatus(buildStatus(SAMLSSOConstants.StatusCodes.SUCCESS_CODE, null));
+        response.setStatus(SAMLSSOUtil.buildResponseStatus(SAMLSSOConstants.StatusCodes.SUCCESS_CODE, null));
         response.setVersion(SAMLVersion.VERSION_20);
         DateTime issueInstant = new DateTime();
         response.setIssueInstant(issueInstant);
@@ -112,25 +112,6 @@ public class DefaultResponseBuilder implements ResponseBuilder {
                     (), new SignKeyDataHolder(authReqDTO.getUser().getAuthenticatedSubjectIdentifier()));
         }
         return response;
-    }
-
-    private Status buildStatus(String status, String statMsg) {
-
-        Status stat = new StatusBuilder().buildObject();
-
-        // Set the status code
-        StatusCode statCode = new StatusCodeBuilder().buildObject();
-        statCode.setValue(status);
-        stat.setStatusCode(statCode);
-
-        // Set the status Message
-        if (statMsg != null) {
-            StatusMessage statMesssage = new StatusMessageBuilder().buildObject();
-            statMesssage.setMessage(statMsg);
-            stat.setStatusMessage(statMesssage);
-        }
-
-        return stat;
     }
 
 }

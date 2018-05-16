@@ -23,9 +23,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.opensaml.saml1.core.NameIdentifier;
 import org.opensaml.saml2.common.Extensions;
-import org.opensaml.saml2.core.Assertion;
 import org.opensaml.saml2.core.AttributeStatement;
-import org.opensaml.saml2.core.AuthnContextClassRef;
 import org.opensaml.saml2.core.AuthnRequest;
 import org.opensaml.saml2.core.NameID;
 import org.opensaml.saml2.core.Response;
@@ -37,6 +35,7 @@ import org.wso2.carbon.identity.application.common.model.Claim;
 import org.wso2.carbon.identity.application.common.model.ClaimMapping;
 import org.wso2.carbon.identity.base.IdentityException;
 import org.wso2.carbon.identity.sso.saml.SAMLSSOConstants;
+import org.wso2.carbon.identity.sso.saml.dto.SAMLSSOAuthnReqDTO;
 import org.wso2.carbon.identity.sso.saml.dto.SAMLSSOReqValidationResponseDTO;
 import org.wso2.carbon.identity.sso.saml.extension.ExtensionProcessor;
 import org.wso2.carbon.identity.sso.saml.extension.eidas.model.RequestedAttributes;
@@ -48,21 +47,24 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * This class is used to process the Eidas SAML extensions in authentication request
+ */
 public class EidasExtensionProcessor implements ExtensionProcessor {
     private static Log log = LogFactory.getLog(EidasExtensionProcessor.class);
     private static String errorMsg = "202010 - Mandatory Attribute not found.";
 
     /**
-     * Process the extensions for EIDAS message format
+     * Process the SAML extensions in authentication request for EIDAS message format
      *
-     * @param request Authentication request
+     * @param request        Authentication request
      * @param validationResp reqValidationResponseDTO
      * @throws IdentityException
      */
     public void processExtensions(AuthnRequest request, SAMLSSOReqValidationResponseDTO validationResp)
             throws IdentityException {
 
-        if(log.isDebugEnabled()) {
+        if (log.isDebugEnabled()) {
             log.debug("Process the extensions for EIDAS message format");
         }
         Extensions extensions = request.getExtensions();
@@ -73,55 +75,45 @@ public class EidasExtensionProcessor implements ExtensionProcessor {
     }
 
     /**
-     * Process the extensions for validating the mandatory user attributes in the response
+     * Process the SAML extensions in authentication request for validating the response
      *
-     * @param response Authentication response
-     * @param request Authentication request
-     * @param assertion SAML assertion
-     * @throws IdentityException
+     * @param response
+     * @param authReqDTO
      */
-    public void processExtensions(Response response, AuthnRequest request, Assertion assertion)
-            throws IdentityException {
+    public void processExtensions(Response response, SAMLSSOAuthnReqDTO authReqDTO) {
 
-        if(log.isDebugEnabled()) {
+        if (log.isDebugEnabled()) {
             log.debug("Process the extensions for EIDAS message format");
         }
-        setAuthnContextClassRef(request, assertion);
-        validateMadatoryRequestedAttr(request, response, assertion);
+        setAuthnContextClassRef(response, authReqDTO);
+        validateMandatoryRequestedAttr(response, authReqDTO);
     }
 
-    private void validateMadatoryRequestedAttr(AuthnRequest request, Response response, Assertion assertion) {
+    private void validateMandatoryRequestedAttr(Response response, SAMLSSOAuthnReqDTO authReqDTO) {
 
-        Extensions extensions = request.getExtensions();
-        XMLObject requestedAttrs = extensions.getUnknownXMLObjects(RequestedAttributes.DEFAULT_ELEMENT_NAME).get(0);
-        NodeList nodeList = requestedAttrs.getDOM().getChildNodes();
-
-        List<AttributeStatement> attributeStatements = assertion.getAttributeStatements();
         List<String> mandatoryClaims = new ArrayList<>();
+        setAttributeNameFormat(response.getAssertions().get(0).getAttributeStatements());
+        getMandatoryAttributes(authReqDTO, mandatoryClaims);
 
-        setAttributeNameFormat(attributeStatements);
-        getMandatoryAttributes(nodeList, mandatoryClaims);
-
-        boolean isMandatoryClaimPresent = validateMandatoryClaims(attributeStatements, mandatoryClaims);
+        boolean isMandatoryClaimPresent = validateMandatoryClaims(response, mandatoryClaims);
 
         if (!isMandatoryClaimPresent) {
             response.setStatus(SAMLSSOUtil.buildResponseStatus(SAMLSSOConstants.StatusCodes.IDENTITY_PROVIDER_ERROR,
                     errorMsg));
-            assertion.getAttributeStatements().clear();
+            response.getAssertions().get(0).getAttributeStatements().clear();
 
             NameID nameId = new NameIDBuilder().buildObject();
             nameId.setValue("NotAvailable");
             nameId.setFormat(NameIdentifier.UNSPECIFIED);
-            assertion.getSubject().setNameID(nameId);
+            response.getAssertions().get(0).getSubject().setNameID(nameId);
         }
     }
 
-    private void setAuthnContextClassRef(AuthnRequest request, Assertion assertion) {
+    private void setAuthnContextClassRef(Response response, SAMLSSOAuthnReqDTO authReqDTO) {
 
-        AuthnContextClassRef authnContextClassRefInRequest = request.getRequestedAuthnContext()
-                .getAuthnContextClassRefs().get(0);
-        assertion.getAuthnStatements().get(0).getAuthnContext().getAuthnContextClassRef().setAuthnContextClassRef(
-                authnContextClassRefInRequest.getAuthnContextClassRef());
+        response.getAssertions().get(0).getAuthnStatements().get(0).getAuthnContext().getAuthnContextClassRef()
+                .setAuthnContextClassRef(authReqDTO.getAuthenticationContextClassRefList().get(0)
+                        .getAuthenticationContextClassReference());
     }
 
     private void processRequestedAttributes(SAMLSSOReqValidationResponseDTO validationResp, Extensions extensions)
@@ -175,7 +167,7 @@ public class EidasExtensionProcessor implements ExtensionProcessor {
 
         if (CollectionUtils.isNotEmpty(extensions.getUnknownXMLObjects(SPType.DEFAULT_ELEMENT_NAME))) {
             XMLObject spType = extensions.getUnknownXMLObjects(SPType.DEFAULT_ELEMENT_NAME).get(0);
-            if(log.isDebugEnabled()) {
+            if (log.isDebugEnabled()) {
                 log.debug("Process the SP Type: " + spType + " in the EIDAS message");
             }
 
@@ -204,11 +196,11 @@ public class EidasExtensionProcessor implements ExtensionProcessor {
                 !spType.getTextContent().equals(EidasConstants.EIDAS_SP_TYPE_PRIVATE);
     }
 
-    private boolean validateMandatoryClaims(List<AttributeStatement> attributeStatements, List<String> mandatoryClaims) {
+    private boolean validateMandatoryClaims(Response response, List<String> mandatoryClaims) {
 
         boolean isMandatoryClaimPresent = false;
         for (String mandatoryClaim : mandatoryClaims) {
-            for (AttributeStatement attributeStatement : attributeStatements) {
+            for (AttributeStatement attributeStatement : response.getAssertions().get(0).getAttributeStatements()) {
                 if (attributeStatement.getAttributes().stream().anyMatch(attribute -> attribute.getName().equals(
                         mandatoryClaim))) {
                     isMandatoryClaimPresent = true;
@@ -224,15 +216,11 @@ public class EidasExtensionProcessor implements ExtensionProcessor {
         return isMandatoryClaimPresent;
     }
 
-    private void getMandatoryAttributes(NodeList nodeList, List<String> mandatoryClaims) {
+    private void getMandatoryAttributes(SAMLSSOAuthnReqDTO authReqDTO, List<String> mandatoryClaims) {
 
-        for (int i = 0; i < nodeList.getLength(); i++) {
-            String spClaimUri = nodeList.item(i).getAttributes().getNamedItem(EidasConstants.EIDAS_ATTRIBUTE_NAME)
-                    .getNodeValue();
-            boolean isRequired = Boolean.parseBoolean(nodeList.item(i).getAttributes()
-                    .getNamedItem(EidasConstants.EIDAS_ATTRIBUTE_REQUIRED).getNodeValue());
-            if (isRequired) {
-                mandatoryClaims.add(spClaimUri);
+        for (ClaimMapping requestedClaim : authReqDTO.getRequestedAttributes()) {
+            if (requestedClaim.isMandatory()) {
+                mandatoryClaims.add(requestedClaim.getRemoteClaim().getClaimUri());
             }
         }
     }

@@ -20,26 +20,16 @@ package org.wso2.carbon.identity.sso.saml.extension.eidas.util;
 
 /**
  * Constants for the eIDAS extension processing
- *
  */
 public class EidasConstants {
 
-    /** The eIDAS SAML extension XML Namespace. */
     public static final String EIDAS_NS = "http://eidas.europa.eu/saml-extensions";
-
-    /** The eIDAS SAML extension QName prefix. */
     public static final String EIDAS_PREFIX = "eidas";
-
     public static final String EIDAS_ATTRIBUTE_NAME_FORMAT = "NameFormat";
-
     public static final String EIDAS_ATTRIBUTE_NAME_FORMAT_URI = "urn:oasis:names:tc:SAML:2.0:attrname-format:uri";
-
     public static final String EIDAS_ATTRIBUTE_NAME = "Name";
-
     public static final String EIDAS_ATTRIBUTE_REQUIRED = "isRequired";
-
     public static final String EIDAS_SP_TYPE_PUBLIC = "public";
-
     public static final String EIDAS_SP_TYPE_PRIVATE = "private";
 
     private EidasConstants() {

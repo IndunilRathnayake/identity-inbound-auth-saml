@@ -24,12 +24,6 @@ import org.opensaml.common.SAMLVersion;
 import org.opensaml.saml2.core.Assertion;
 import org.opensaml.saml2.core.EncryptedAssertion;
 import org.opensaml.saml2.core.Response;
-import org.opensaml.saml2.core.Status;
-import org.opensaml.saml2.core.StatusCode;
-import org.opensaml.saml2.core.StatusMessage;
-import org.opensaml.saml2.core.impl.StatusBuilder;
-import org.opensaml.saml2.core.impl.StatusCodeBuilder;
-import org.opensaml.saml2.core.impl.StatusMessageBuilder;
 import org.wso2.carbon.identity.base.IdentityException;
 import org.wso2.carbon.identity.sso.saml.SAMLSSOConstants;
 import org.wso2.carbon.identity.sso.saml.dto.SAMLSSOAuthnReqDTO;
@@ -64,7 +58,7 @@ public class DefaultResponseBuilder implements ResponseBuilder {
         DateTime notOnOrAfter = new DateTime(issueInstant.getMillis()
                 + SAMLSSOUtil.getSAMLResponseValidityPeriod() * 60 * 1000L);
         response.setIssueInstant(issueInstant);
-        Assertion assertion = SAMLSSOUtil.buildSAMLAssertion(response, authReqDTO, notOnOrAfter, sessionId);
+        Assertion assertion = SAMLSSOUtil.buildSAMLAssertion(authReqDTO, notOnOrAfter, sessionId);
 
         if (authReqDTO.isDoEnableEncryptedAssertion()) {
 

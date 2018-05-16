@@ -18,16 +18,16 @@
 
 package org.wso2.carbon.identity.sso.saml.extension;
 
-import org.opensaml.saml2.core.Assertion;
 import org.opensaml.saml2.core.AuthnRequest;
 import org.opensaml.saml2.core.Response;
 import org.wso2.carbon.identity.base.IdentityException;
+import org.wso2.carbon.identity.sso.saml.dto.SAMLSSOAuthnReqDTO;
 import org.wso2.carbon.identity.sso.saml.dto.SAMLSSOReqValidationResponseDTO;
 
 public interface ExtensionProcessor {
 
     public void processExtensions(AuthnRequest request, SAMLSSOReqValidationResponseDTO validationResp)
-            throws IdentityException ;
+            throws IdentityException;
 
-    public void processExtensions(Response response, AuthnRequest request, Assertion assertion) throws IdentityException;
+    public void processExtensions(Response response, SAMLSSOAuthnReqDTO authReqDTO) throws IdentityException;
 }

@@ -22,7 +22,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.joda.time.DateTime;
 import org.opensaml.saml2.core.Assertion;
-import org.opensaml.saml2.core.Response;
 import org.wso2.carbon.identity.base.IdentityException;
 import org.wso2.carbon.identity.core.persistence.JDBCPersistenceManager;
 import org.wso2.carbon.identity.core.util.IdentityDatabaseUtil;
@@ -68,10 +67,10 @@ public class ExtendedDefaultAssertionBuilder extends DefaultSAMLAssertionBuilder
      * @throws IdentityException If unable to collect issuer information
      */
     @Override
-    public Assertion buildAssertion(Response response, SAMLSSOAuthnReqDTO samlssoAuthnReqDTO, DateTime notOnOrAfter, String sessionId)
+    public Assertion buildAssertion(SAMLSSOAuthnReqDTO samlssoAuthnReqDTO, DateTime notOnOrAfter, String sessionId)
             throws IdentityException {
 
-        Assertion assertion = super.buildAssertion(response, samlssoAuthnReqDTO, notOnOrAfter, sessionId);
+        Assertion assertion = super.buildAssertion(samlssoAuthnReqDTO, notOnOrAfter, sessionId);
 
         // Persist the assertion in the assertion store, if "Assertion Query Request Profile" is enabled.
         if (samlssoAuthnReqDTO.isAssertionQueryRequestProfileEnabled()) {

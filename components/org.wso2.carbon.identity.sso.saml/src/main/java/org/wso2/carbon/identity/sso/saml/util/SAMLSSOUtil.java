@@ -17,6 +17,8 @@
  */
 package org.wso2.carbon.identity.sso.saml.util;
 
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.ListUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -733,7 +735,7 @@ public class SAMLSSOUtil {
         }
     }
 
-    public static Assertion buildSAMLAssertion(Response response, SAMLSSOAuthnReqDTO authReqDTO, DateTime notOnOrAfter,
+    public static Assertion buildSAMLAssertion(SAMLSSOAuthnReqDTO authReqDTO, DateTime notOnOrAfter,
                                                String sessionId) throws IdentityException {
 
         doBootstrap();
@@ -756,7 +758,7 @@ public class SAMLSSOUtil {
                 samlAssertionBuilder = (SAMLAssertionBuilder) Class.forName(assertionBuilderClass).newInstance();
                 samlAssertionBuilder.init();
             }
-            return samlAssertionBuilder.buildAssertion(response, authReqDTO, notOnOrAfter, sessionId);
+            return samlAssertionBuilder.buildAssertion(authReqDTO, notOnOrAfter, sessionId);
 
         } catch (ClassNotFoundException e) {
             throw IdentityException.error("Class not found: "
@@ -1233,7 +1235,7 @@ public class SAMLSSOUtil {
                 if (StringUtils.isNotBlank(spDO.getAttributeConsumingServiceIndex()) && spDO
                         .isEnableAttributesByDefault()) {
                     index = Integer.parseInt(spDO.getAttributeConsumingServiceIndex());
-                } else if(!authnReqDTO.isAttributesInRequest()) {
+                } else if(CollectionUtils.isEmpty(authnReqDTO.getRequestedAttributes())) {
                     return Collections.emptyMap();
                 }
             } else {
@@ -1257,7 +1259,7 @@ public class SAMLSSOUtil {
 		 */
         if (((spDO.getAttributeConsumingServiceIndex() == null ||
                 "".equals(spDO.getAttributeConsumingServiceIndex())) &&
-                !authnReqDTO.isAttributesInRequest()) ||
+                CollectionUtils.isEmpty(authnReqDTO.getRequestedAttributes())) ||
                 (index !=0 && index != Integer.parseInt(spDO.getAttributeConsumingServiceIndex()))) {
             if (log.isDebugEnabled()) {
                 log.debug("Invalid AttributeConsumingServiceIndex in AuthnRequest");

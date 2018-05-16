@@ -18,14 +18,12 @@
 package org.wso2.carbon.identity.sso.saml.dto;
 
 import org.apache.commons.lang.StringUtils;
-import org.opensaml.saml2.core.NameIDPolicy;
 import org.wso2.carbon.identity.application.common.model.ClaimMapping;
 
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 public class SAMLSSOReqValidationResponseDTO implements Serializable {
 
@@ -311,6 +309,7 @@ public class SAMLSSOReqValidationResponseDTO implements Serializable {
 
     public void setAuthenticationContextClassRefList(List<SAMLAuthenticationContextClassRefDTO>
                                                              authenticationContextClassRefList) {
+
         if (authenticationContextClassRefList == null) {
             this.authenticationContextClassRefList = authenticationContextClassRefList;
         } else {
@@ -328,10 +327,12 @@ public class SAMLSSOReqValidationResponseDTO implements Serializable {
     }
 
     public List<ClaimMapping> getRequestedAttributes() {
+
         return requestedAttributes;
     }
 
     public void setRequestedAttributes(List<ClaimMapping> requestedAttributes) {
+
         if (this.requestedAttributes == null) {
             this.requestedAttributes = requestedAttributes;
         } else {
@@ -340,10 +341,12 @@ public class SAMLSSOReqValidationResponseDTO implements Serializable {
     }
 
     public String getRequestedAuthnContextComparison() {
+
         return requestedAuthnContextComparison;
     }
 
     public void setRequestedAuthnContextComparison(String requestedAuthnContextComparison) {
+
         this.requestedAuthnContextComparison = requestedAuthnContextComparison;
     }
 }

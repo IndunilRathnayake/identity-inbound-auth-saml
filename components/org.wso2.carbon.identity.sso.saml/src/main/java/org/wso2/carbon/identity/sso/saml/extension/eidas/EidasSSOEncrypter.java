@@ -32,9 +32,9 @@ import org.wso2.carbon.identity.base.IdentityException;
 import org.wso2.carbon.identity.sso.saml.builders.X509CredentialImpl;
 import org.wso2.carbon.identity.sso.saml.builders.encryption.DefaultSSOEncrypter;
 
+import javax.xml.namespace.QName;
 import java.io.Serializable;
 import java.security.cert.CertificateEncodingException;
-import javax.xml.namespace.QName;
 
 /**
  * This class is used to override existing implementation on Assertion building to support
@@ -54,10 +54,19 @@ public class EidasSSOEncrypter extends DefaultSSOEncrypter implements Serializab
 
     }
 
+    /**
+     * @param assertion                    SAML assertion to be encrypted
+     * @param cred                         Encrypting credential
+     * @param alias                        Certificate alias against which use to Encrypt the assertion.
+     * @param assertionEncryptionAlgorithm Encryption algorithm
+     * @return SAML EncryptedAssertion
+     * @throws IdentityException
+     */
     @Override
     public EncryptedAssertion doEncryptedAssertion(Assertion assertion, X509Credential cred,
                                                    String alias, String assertionEncryptionAlgorithm,
                                                    String keyEncryptionAlgorithm) throws IdentityException {
+
         EncryptedAssertion encrypted = super.doEncryptedAssertion(assertion, cred, alias, assertionEncryptionAlgorithm,
                 keyEncryptionAlgorithm);
         KeyInfo keyInfo = (KeyInfo) buildXMLObject(KeyInfo.DEFAULT_ELEMENT_NAME);

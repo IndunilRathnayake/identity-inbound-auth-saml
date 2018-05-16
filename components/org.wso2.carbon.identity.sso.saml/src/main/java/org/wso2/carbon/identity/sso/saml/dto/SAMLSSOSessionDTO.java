@@ -18,7 +18,12 @@
 
 package org.wso2.carbon.identity.sso.saml.dto;
 
+import org.wso2.carbon.identity.application.common.model.ClaimMapping;
+
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public class SAMLSSOSessionDTO implements Serializable {
 
@@ -44,7 +49,9 @@ public class SAMLSSOSessionDTO implements Serializable {
     private boolean forceAuth;
     private boolean isIdPInitSLO;
     private int attributeConsumingServiceIndex = 0;
-    private boolean attributesInRequest = false;
+    private List<SAMLAuthenticationContextClassRefDTO> authenticationContextClassRefList;
+    private String requestedAuthnContextComparison;
+    private List<ClaimMapping> requestedAttributes;
 
     public String getHttpQueryString() {
         return httpQueryString;
@@ -207,11 +214,54 @@ public class SAMLSSOSessionDTO implements Serializable {
         this.attributeConsumingServiceIndex = attributeConsumingServiceIndex;
     }
 
-    public void setAttributesInRequest(boolean attributesInRequest) {
-        this.attributesInRequest = attributesInRequest;
+    public List<SAMLAuthenticationContextClassRefDTO> getAuthenticationContextClassRefList() {
+
+        if (authenticationContextClassRefList == null) {
+            return Collections.emptyList();
+        }
+        return Collections.unmodifiableList(authenticationContextClassRefList);
     }
 
-    public boolean isAttributesInRequest() {
-        return attributesInRequest;
+    public void setAuthenticationContextClassRefList(List<SAMLAuthenticationContextClassRefDTO>
+                                                             authenticationContextClassRefList) {
+
+        if (authenticationContextClassRefList == null) {
+            this.authenticationContextClassRefList = authenticationContextClassRefList;
+        } else {
+            this.authenticationContextClassRefList.addAll(authenticationContextClassRefList);
+        }
+    }
+
+    public void addAuthenticationContextClassRef(
+            SAMLAuthenticationContextClassRefDTO authenticationContextClassRefDTO) {
+
+        if (authenticationContextClassRefList == null) {
+            authenticationContextClassRefList = new ArrayList<>();
+        }
+        authenticationContextClassRefList.add(authenticationContextClassRefDTO);
+    }
+
+    public List<ClaimMapping> getRequestedAttributes() {
+
+        return requestedAttributes;
+    }
+
+    public void setRequestedAttributes(List<ClaimMapping> requestedAttributes) {
+
+        if (this.requestedAttributes == null) {
+            this.requestedAttributes = requestedAttributes;
+        } else {
+            this.requestedAttributes.addAll(requestedAttributes);
+        }
+    }
+
+    public String getRequestedAuthnContextComparison() {
+
+        return requestedAuthnContextComparison;
+    }
+
+    public void setRequestedAuthnContextComparison(String requestedAuthnContextComparison) {
+
+        this.requestedAuthnContextComparison = requestedAuthnContextComparison;
     }
 }

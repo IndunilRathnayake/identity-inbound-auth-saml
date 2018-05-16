@@ -36,7 +36,6 @@ import org.opensaml.saml2.core.AuthnContextClassRef;
 import org.opensaml.saml2.core.AuthnStatement;
 import org.opensaml.saml2.core.Conditions;
 import org.opensaml.saml2.core.NameID;
-import org.opensaml.saml2.core.Response;
 import org.opensaml.saml2.core.Subject;
 import org.opensaml.saml2.core.SubjectConfirmation;
 import org.opensaml.saml2.core.SubjectConfirmationData;
@@ -82,7 +81,7 @@ public class DefaultSAMLAssertionBuilder implements SAMLAssertionBuilder {
     }
 
     @Override
-    public Assertion buildAssertion(Response response, SAMLSSOAuthnReqDTO authReqDTO, DateTime notOnOrAfter, String sessionId) throws IdentityException {
+    public Assertion buildAssertion(SAMLSSOAuthnReqDTO authReqDTO, DateTime notOnOrAfter, String sessionId) throws IdentityException {
         try {
             DateTime currentTime = new DateTime();
             Assertion samlAssertion = new AssertionBuilder().buildObject();

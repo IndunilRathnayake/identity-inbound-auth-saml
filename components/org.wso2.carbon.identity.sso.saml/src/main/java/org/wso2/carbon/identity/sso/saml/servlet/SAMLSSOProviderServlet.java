@@ -538,9 +538,9 @@ public class SAMLSSOProviderServlet extends HttpServlet {
         sessionDTO.setPassiveAuth(signInRespDTO.isPassive());
         sessionDTO.setValidationRespDTO(signInRespDTO);
         sessionDTO.setIdPInitSSO(signInRespDTO.isIdPInitSSO());
-        if(signInRespDTO.getRequestedAttributes() != null) {
-            sessionDTO.setAttributesInRequest(true);
-        }
+        sessionDTO.setAuthenticationContextClassRefList(signInRespDTO.getAuthenticationContextClassRefList());
+        sessionDTO.setRequestedAttributes(signInRespDTO.getRequestedAttributes());
+        sessionDTO.setRequestedAuthnContextComparison(signInRespDTO.getRequestedAuthnContextComparison());
 
         String sessionDataKey = UUIDGenerator.generateUUID();
         addSessionDataToCache(sessionDataKey, sessionDTO);
@@ -1357,7 +1357,9 @@ public class SAMLSSOProviderServlet extends HttpServlet {
         if (!(sessionDTO.getAttributeConsumingServiceIndex() < 1)) {
             authnReqDTO.setAttributeConsumingServiceIndex(sessionDTO.getAttributeConsumingServiceIndex());
         }
-        authnReqDTO.setAttributesInRequest(sessionDTO.isAttributesInRequest());
+        authnReqDTO.setAuthenticationContextClassRefList(sessionDTO.getAuthenticationContextClassRefList());
+        authnReqDTO.setRequestedAttributes(sessionDTO.getRequestedAttributes());
+        authnReqDTO.setRequestedAuthnContextComparison(sessionDTO.getRequestedAuthnContextComparison());
     }
 
     private void populateAuthnReqDTOWithRequiredServiceProviderConfigs(SAMLSSOAuthnReqDTO authnReqDTO,

@@ -91,8 +91,8 @@ public class SAMLSSOService {
             validationResp.setRpSessionId(rpSessionId);
             validationResp.setIdPInitSSO(false);
 
-            if(((AuthnRequest) request).getExtensions() != null) {
-                for(ExtensionProcessor extensionProcessor : SAMLSSOUtil.getExtensionProcessors()) {
+            if (((AuthnRequest) request).getExtensions() != null) {
+                for (ExtensionProcessor extensionProcessor : SAMLSSOUtil.getExtensionProcessors()) {
                     extensionProcessor.processExtensions((AuthnRequest) request, validationResp);
                 }
             }

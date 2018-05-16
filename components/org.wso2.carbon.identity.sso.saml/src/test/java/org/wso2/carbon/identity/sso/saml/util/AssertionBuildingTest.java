@@ -313,7 +313,7 @@ public class AssertionBuildingTest extends PowerMockTestCase {
         DateTime issueInstant = new DateTime();
         response.setIssueInstant(issueInstant);
 
-        Assertion assertion = SAMLSSOUtil.buildSAMLAssertion(response, authnReqDTO, new DateTime(00000000L), TestConstants
+        Assertion assertion = SAMLSSOUtil.buildSAMLAssertion(authnReqDTO, new DateTime(00000000L), TestConstants
                 .SESSION_ID);
         return assertion;
     }

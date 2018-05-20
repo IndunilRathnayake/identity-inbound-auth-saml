@@ -57,6 +57,7 @@ public class SAMLSSOReqValidationResponseDTO implements Serializable {
     private List<SAMLAuthenticationContextClassRefDTO> authenticationContextClassRefList;
     private String requestedAuthnContextComparison;
     private List<ClaimMapping> requestedAttributes;
+    private String requestType;
 
     public String getDigestAlgorithmUri() {
         return digestAlgorithmUri;
@@ -348,5 +349,15 @@ public class SAMLSSOReqValidationResponseDTO implements Serializable {
     public void setRequestedAuthnContextComparison(String requestedAuthnContextComparison) {
 
         this.requestedAuthnContextComparison = requestedAuthnContextComparison;
+    }
+
+    public String getRequestType() {
+
+        return requestType;
+    }
+
+    public void setRequestType(String requestType) {
+
+        this.requestType = requestType;
     }
 }

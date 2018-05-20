@@ -23,10 +23,14 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.opensaml.saml1.core.NameIdentifier;
 import org.opensaml.saml2.common.Extensions;
+import org.opensaml.saml2.core.Assertion;
 import org.opensaml.saml2.core.AttributeStatement;
+import org.opensaml.saml2.core.AuthnContextComparisonTypeEnumeration;
 import org.opensaml.saml2.core.AuthnRequest;
 import org.opensaml.saml2.core.NameID;
+import org.opensaml.saml2.core.RequestAbstractType;
 import org.opensaml.saml2.core.Response;
+import org.opensaml.saml2.core.StatusResponseType;
 import org.opensaml.saml2.core.impl.NameIDBuilder;
 import org.opensaml.xml.XMLObject;
 import org.opensaml.xml.schema.impl.XSAnyImpl;
@@ -37,7 +41,8 @@ import org.wso2.carbon.identity.base.IdentityException;
 import org.wso2.carbon.identity.sso.saml.SAMLSSOConstants;
 import org.wso2.carbon.identity.sso.saml.dto.SAMLSSOAuthnReqDTO;
 import org.wso2.carbon.identity.sso.saml.dto.SAMLSSOReqValidationResponseDTO;
-import org.wso2.carbon.identity.sso.saml.extension.ExtensionProcessor;
+import org.wso2.carbon.identity.sso.saml.exception.IdentitySAML2SSOException;
+import org.wso2.carbon.identity.sso.saml.extension.SAMLExtensionProcessor;
 import org.wso2.carbon.identity.sso.saml.extension.eidas.model.RequestedAttributes;
 import org.wso2.carbon.identity.sso.saml.extension.eidas.model.SPType;
 import org.wso2.carbon.identity.sso.saml.extension.eidas.util.EidasConstants;
@@ -47,93 +52,142 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.apache.commons.collections.CollectionUtils.isNotEmpty;
+
 /**
- * This class is used to process the Eidas SAML extensions in authentication request
+ * This class is used to process and validate the eIDAS SAML extensions.
  */
-public class EidasExtensionProcessor implements ExtensionProcessor {
+public class EidasExtensionProcessor implements SAMLExtensionProcessor {
     private static Log log = LogFactory.getLog(EidasExtensionProcessor.class);
     private static String errorMsg = "202010 - Mandatory Attribute not found.";
 
+    @Override
+    public boolean canHandle(RequestAbstractType request) throws IdentitySAML2SSOException {
+
+        return request.getNamespaces().stream().anyMatch(namespace -> namespace.getNamespacePrefix()
+                .equals(EidasConstants.EIDAS_PREFIX));
+    }
+
+    @Override
+    public boolean canHandle(StatusResponseType response, Assertion assertion, SAMLSSOAuthnReqDTO authReqDTO)
+            throws IdentitySAML2SSOException {
+
+        return authReqDTO.getRequestType().equals(EidasConstants.EIDAS_PREFIX);
+    }
+
     /**
-     * Process the SAML extensions in authentication request for EIDAS message format
+     * Process the SAML extensions in authentication request for EIDAS message format.
      *
      * @param request        Authentication request
      * @param validationResp reqValidationResponseDTO
      * @throws IdentityException
      */
-    public void processExtensions(AuthnRequest request, SAMLSSOReqValidationResponseDTO validationResp)
-            throws IdentityException {
+    public void processSAMLExtensions(RequestAbstractType request, SAMLSSOReqValidationResponseDTO validationResp)
+            throws IdentitySAML2SSOException {
 
-        if (log.isDebugEnabled()) {
-            log.debug("Process the extensions for EIDAS message format");
-        }
-        Extensions extensions = request.getExtensions();
-        if (extensions != null) {
-            processSPType(validationResp, extensions);
-            processRequestedAttributes(validationResp, extensions);
+        if (request instanceof AuthnRequest) {
+            if (log.isDebugEnabled()) {
+                log.debug("Process the extensions for EIDAS message format");
+            }
+            Extensions extensions = request.getExtensions();
+            if (extensions != null) {
+                processRequestedAttributes(validationResp, extensions);
+            }
         }
     }
 
-    /**
-     * Process the SAML extensions in authentication request for validating the response
-     *
-     * @param response
-     * @param authReqDTO
-     */
-    public void processExtensions(Response response, SAMLSSOAuthnReqDTO authReqDTO) {
+    @Override
+    public void validateSAMLExtensions(RequestAbstractType request, SAMLSSOReqValidationResponseDTO validationResp)
+            throws IdentitySAML2SSOException {
 
-        if (log.isDebugEnabled()) {
-            log.debug("Process the extensions for EIDAS message format");
+        if (request instanceof AuthnRequest) {
+            if (log.isDebugEnabled()) {
+                log.debug("Validate the extensions for EIDAS message format");
+            }
+            Extensions extensions = request.getExtensions();
+            if (extensions != null) {
+                validateForceAuthn(validationResp);
+                validateIsPassive(validationResp);
+                validateAuthnContextComparison(validationResp);
+                validateSPType(validationResp, extensions);
+            }
         }
-        setAuthnContextClassRef(response, authReqDTO);
-        validateMandatoryRequestedAttr(response, authReqDTO);
     }
 
-    private void validateMandatoryRequestedAttr(Response response, SAMLSSOAuthnReqDTO authReqDTO) {
+    @Override
+    public void processSAMLExtensions(StatusResponseType response, Assertion assertion, SAMLSSOAuthnReqDTO authReqDTO)
+            throws IdentitySAML2SSOException {
+
+        if (response instanceof Response) {
+            if (log.isDebugEnabled()) {
+                log.debug("Process the extensions for EIDAS message format");
+            }
+            setAuthnContextClassRef(assertion, authReqDTO);
+        }
+    }
+
+    @Override
+    public void validateSAMLExtensions(StatusResponseType response, Assertion assertion, SAMLSSOAuthnReqDTO authReqDTO)
+            throws IdentitySAML2SSOException {
+
+        if (response instanceof Response) {
+            if (log.isDebugEnabled()) {
+                log.debug("Validate the extensions for EIDAS message format");
+            }
+            validateMandatoryRequestedAttr((Response) response, assertion, authReqDTO);
+        }
+    }
+
+    private void validateMandatoryRequestedAttr(Response response, Assertion assertion, SAMLSSOAuthnReqDTO authReqDTO) {
 
         List<String> mandatoryClaims = new ArrayList<>();
-        setAttributeNameFormat(response.getAssertions().get(0).getAttributeStatements());
         getMandatoryAttributes(authReqDTO, mandatoryClaims);
 
-        boolean isMandatoryClaimPresent = validateMandatoryClaims(response, mandatoryClaims);
-
+        boolean isMandatoryClaimPresent = validateMandatoryClaims(assertion, mandatoryClaims);
         if (!isMandatoryClaimPresent) {
             response.setStatus(SAMLSSOUtil.buildResponseStatus(SAMLSSOConstants.StatusCodes.IDENTITY_PROVIDER_ERROR,
                     errorMsg));
-            response.getAssertions().get(0).getAttributeStatements().clear();
+            if(CollectionUtils.isNotEmpty(assertion.getAttributeStatements())) {
+                assertion.getAttributeStatements().clear();
+            }
 
             NameID nameId = new NameIDBuilder().buildObject();
             nameId.setValue("NotAvailable");
             nameId.setFormat(NameIdentifier.UNSPECIFIED);
-            response.getAssertions().get(0).getSubject().setNameID(nameId);
+            assertion.getSubject().setNameID(nameId);
+            return;
         }
+
+        setAttributeNameFormat(assertion.getAttributeStatements());
     }
 
-    private void setAuthnContextClassRef(Response response, SAMLSSOAuthnReqDTO authReqDTO) {
+    private void setAuthnContextClassRef(Assertion assertion, SAMLSSOAuthnReqDTO authReqDTO) {
 
-        response.getAssertions().get(0).getAuthnStatements().get(0).getAuthnContext().getAuthnContextClassRef()
+        assertion.getAuthnStatements().get(0).getAuthnContext().getAuthnContextClassRef()
                 .setAuthnContextClassRef(authReqDTO.getAuthenticationContextClassRefList().get(0)
                         .getAuthenticationContextClassReference());
     }
 
     private void processRequestedAttributes(SAMLSSOReqValidationResponseDTO validationResp, Extensions extensions)
-            throws IdentityException {
+            throws IdentitySAML2SSOException {
 
-        if (CollectionUtils.isNotEmpty(extensions.getUnknownXMLObjects(RequestedAttributes.DEFAULT_ELEMENT_NAME))) {
+        if (isNotEmpty(extensions.getUnknownXMLObjects(RequestedAttributes.DEFAULT_ELEMENT_NAME))) {
             XMLObject requestedAttrs = extensions.getUnknownXMLObjects(RequestedAttributes.DEFAULT_ELEMENT_NAME).get(0);
             NodeList nodeList = requestedAttrs.getDOM().getChildNodes();
             validationResp.setRequestedAttributes(new ArrayList<>());
+            validationResp.setRequestType(EidasConstants.EIDAS_PREFIX);
 
             for (int i = 0; i < nodeList.getLength(); i++) {
                 ClaimMapping claimMapping = new ClaimMapping();
                 Claim remoteClaim = new Claim();
-                String nameFormat = nodeList.item(i).getAttributes().getNamedItem(EidasConstants.EIDAS_ATTRIBUTE_NAME_FORMAT)
-                        .getNodeValue();
+                String nameFormat = nodeList.item(i).getAttributes().getNamedItem(
+                        EidasConstants.EIDAS_ATTRIBUTE_NAME_FORMAT).getNodeValue();
                 validateAttributeNameFormat(validationResp, nameFormat);
-                remoteClaim.setClaimUri(nodeList.item(i).getAttributes().getNamedItem(EidasConstants.EIDAS_ATTRIBUTE_NAME)
-                        .getNodeValue());
+                remoteClaim.setClaimUri(nodeList.item(i).getAttributes().getNamedItem(
+                        EidasConstants.EIDAS_ATTRIBUTE_NAME).getNodeValue());
                 claimMapping.setRemoteClaim(remoteClaim);
-                claimMapping.setRequested(Boolean.parseBoolean(nodeList.item(i).getAttributes().getNamedItem(
+                claimMapping.setRequested(true);
+                claimMapping.setMandatory(Boolean.parseBoolean(nodeList.item(i).getAttributes().getNamedItem(
                         EidasConstants.EIDAS_ATTRIBUTE_REQUIRED).getNodeValue()));
                 validationResp.getRequestedAttributes().add(claimMapping);
             }
@@ -141,18 +195,17 @@ public class EidasExtensionProcessor implements ExtensionProcessor {
     }
 
     private void validateAttributeNameFormat(SAMLSSOReqValidationResponseDTO validationResp, String nameFormat)
-            throws IdentityException {
+            throws IdentitySAML2SSOException {
 
         if (!nameFormat.equals(EidasConstants.EIDAS_ATTRIBUTE_NAME_FORMAT_URI)) {
-            validationResp.setValid(false);
             String errorResp;
             try {
                 errorResp = SAMLSSOUtil.buildErrorResponse(
                         SAMLSSOConstants.StatusCodes.REQUESTOR_ERROR, "NameFormat should be " +
                                 EidasConstants.EIDAS_ATTRIBUTE_NAME_FORMAT_URI,
                         validationResp.getDestination());
-            } catch (IOException e) {
-                throw new IdentityException("Issue in building error response.", e);
+            } catch (IOException | IdentityException e) {
+                throw new IdentitySAML2SSOException("Issue in building error response.", e);
             }
             if (log.isDebugEnabled()) {
                 log.debug("Invalid Request message. NameFormat found " + nameFormat);
@@ -162,24 +215,23 @@ public class EidasExtensionProcessor implements ExtensionProcessor {
         }
     }
 
-    private void processSPType(SAMLSSOReqValidationResponseDTO validationResp, Extensions extensions)
-            throws IdentityException {
+    private void validateSPType(SAMLSSOReqValidationResponseDTO validationResp, Extensions extensions)
+            throws IdentitySAML2SSOException {
 
-        if (CollectionUtils.isNotEmpty(extensions.getUnknownXMLObjects(SPType.DEFAULT_ELEMENT_NAME))) {
+        if (isNotEmpty(extensions.getUnknownXMLObjects(SPType.DEFAULT_ELEMENT_NAME))) {
             XMLObject spType = extensions.getUnknownXMLObjects(SPType.DEFAULT_ELEMENT_NAME).get(0);
             if (log.isDebugEnabled()) {
                 log.debug("Process the SP Type: " + spType + " in the EIDAS message");
             }
 
             if (spType != null && isValidSPType((XSAnyImpl) spType)) {
-                validationResp.setValid(false);
                 String errorResp;
                 try {
                     errorResp = SAMLSSOUtil.buildErrorResponse(
                             SAMLSSOConstants.StatusCodes.REQUESTOR_ERROR, "SP Type should be either public or private.",
                             validationResp.getDestination());
-                } catch (IOException e) {
-                    throw new IdentityException("Issue in building error response.", e);
+                } catch (IOException | IdentityException e) {
+                    throw new IdentitySAML2SSOException("Issue in building error response.", e);
                 }
                 if (log.isDebugEnabled()) {
                     log.debug("Invalid Request message. SP Type found " + spType.getDOM().getNodeValue());
@@ -196,21 +248,26 @@ public class EidasExtensionProcessor implements ExtensionProcessor {
                 !spType.getTextContent().equals(EidasConstants.EIDAS_SP_TYPE_PRIVATE);
     }
 
-    private boolean validateMandatoryClaims(Response response, List<String> mandatoryClaims) {
+    private boolean validateMandatoryClaims(Assertion assertion, List<String> mandatoryClaims) {
 
         boolean isMandatoryClaimPresent = false;
-        for (String mandatoryClaim : mandatoryClaims) {
-            for (AttributeStatement attributeStatement : response.getAssertions().get(0).getAttributeStatements()) {
-                if (attributeStatement.getAttributes().stream().anyMatch(attribute -> attribute.getName().equals(
-                        mandatoryClaim))) {
-                    isMandatoryClaimPresent = true;
+        List<AttributeStatement> attributeStatements = assertion.getAttributeStatements();
+        if (isNotEmpty(attributeStatements)) {
+            for (String mandatoryClaim : mandatoryClaims) {
+                for (AttributeStatement attributeStatement : attributeStatements) {
+                    if (isNotEmpty(attributeStatement.getAttributes())) {
+                        if (attributeStatement.getAttributes().stream().anyMatch(attribute -> attribute.getName()
+                                .equals(mandatoryClaim))) {
+                            isMandatoryClaimPresent = true;
+                        }
+                        if (isMandatoryClaimPresent) {
+                            break;
+                        }
+                    }
                 }
-                if (isMandatoryClaimPresent) {
+                if (!isMandatoryClaimPresent) {
                     break;
                 }
-            }
-            if (!isMandatoryClaimPresent) {
-                break;
             }
         }
         return isMandatoryClaimPresent;
@@ -218,16 +275,82 @@ public class EidasExtensionProcessor implements ExtensionProcessor {
 
     private void getMandatoryAttributes(SAMLSSOAuthnReqDTO authReqDTO, List<String> mandatoryClaims) {
 
-        for (ClaimMapping requestedClaim : authReqDTO.getRequestedAttributes()) {
-            if (requestedClaim.isMandatory()) {
-                mandatoryClaims.add(requestedClaim.getRemoteClaim().getClaimUri());
-            }
-        }
+        authReqDTO.getRequestedAttributes().stream().filter(ClaimMapping::isMandatory).map(requestedClaim ->
+                requestedClaim.getRemoteClaim().getClaimUri()).forEach(mandatoryClaims::add);
     }
 
     private void setAttributeNameFormat(List<AttributeStatement> attributeStatements) {
 
         attributeStatements.forEach(attributeStatement -> attributeStatement.getAttributes().forEach(attribute ->
                 attribute.setNameFormat(EidasConstants.EIDAS_ATTRIBUTE_NAME_FORMAT_URI)));
+    }
+
+    private void validateIsPassive(SAMLSSOReqValidationResponseDTO validationResponseDTO)
+            throws IdentitySAML2SSOException {
+
+        String errorResp;
+        if (validationResponseDTO.isPassive()) {
+            try {
+                errorResp = SAMLSSOUtil.buildErrorResponse(
+                        SAMLSSOConstants.StatusCodes.REQUESTOR_ERROR,
+                        "isPassive SHOULD be set to false.",
+                        validationResponseDTO.getDestination());
+            } catch (IOException | IdentityException e) {
+                throw new IdentitySAML2SSOException("Issue in building error response.", e);
+            }
+            if (log.isDebugEnabled()) {
+                log.debug("Invalid Request message. isPassive found " + validationResponseDTO.isPassive());
+            }
+            setErrorResponse(validationResponseDTO, errorResp);
+        }
+    }
+
+    private void validateForceAuthn(SAMLSSOReqValidationResponseDTO validationResponseDTO)
+            throws IdentitySAML2SSOException {
+
+        String errorResp;
+        if (!validationResponseDTO.isForceAuthn()) {
+            try {
+                errorResp = SAMLSSOUtil.buildErrorResponse(
+                        SAMLSSOConstants.StatusCodes.REQUESTOR_ERROR,
+                        "ForceAuthn MUST be set to true",
+                        validationResponseDTO.getDestination());
+            } catch (IOException | IdentityException e) {
+                throw new IdentitySAML2SSOException("Issue in building error response.", e);
+            }
+            if (log.isDebugEnabled()) {
+                log.debug("Invalid Request message. ForceAuthn is " + validationResponseDTO.isForceAuthn());
+            }
+            setErrorResponse(validationResponseDTO, errorResp);
+        }
+    }
+
+    private void validateAuthnContextComparison(SAMLSSOReqValidationResponseDTO validationResponseDTO)
+            throws IdentitySAML2SSOException {
+
+        String errorResp;
+        if (!AuthnContextComparisonTypeEnumeration.MINIMUM.toString().equals(validationResponseDTO
+                .getRequestedAuthnContextComparison())) {
+            try {
+                errorResp = SAMLSSOUtil.buildErrorResponse(
+                        SAMLSSOConstants.StatusCodes.REQUESTOR_ERROR,
+                        "Comparison of RequestedAuthnContext should be minimum.",
+                        validationResponseDTO.getDestination());
+            } catch (IOException | IdentityException e) {
+                throw new IdentitySAML2SSOException("Issue in building error response.", e);
+            }
+            if (log.isDebugEnabled()) {
+                log.debug("Invalid Request message. Comparison of RequestedAuthnContext is " +
+                        validationResponseDTO.getRequestedAuthnContextComparison());
+            }
+            setErrorResponse(validationResponseDTO, errorResp);
+        }
+    }
+
+    private void setErrorResponse(SAMLSSOReqValidationResponseDTO validationResponseDTO, String errorResp) {
+
+        validationResponseDTO.setValid(false);
+        validationResponseDTO.setResponse(errorResp);
+        validationResponseDTO.setValid(false);
     }
 }

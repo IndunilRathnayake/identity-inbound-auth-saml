@@ -22,14 +22,18 @@ import org.opensaml.common.SAMLObject;
 import org.opensaml.saml2.metadata.RequestedAttribute;
 import org.wso2.carbon.identity.sso.saml.extension.eidas.util.EidasConstants;
 
-import javax.xml.namespace.QName;
 import java.util.List;
+import javax.xml.namespace.QName;
 
+/**
+ * SAML Metadata RequestedAttributes.
+ */
 public interface RequestedAttributes extends SAMLObject {
 
     public static final String DEFAULT_ELEMENT_LOCAL_NAME = "RequestedAttributes";
 
-    public static final QName DEFAULT_ELEMENT_NAME = new QName(EidasConstants.EIDAS_NS, DEFAULT_ELEMENT_LOCAL_NAME, EidasConstants.EIDAS_PREFIX);
+    public static final QName DEFAULT_ELEMENT_NAME = new QName(EidasConstants.EIDAS_NS, DEFAULT_ELEMENT_LOCAL_NAME,
+            EidasConstants.EIDAS_PREFIX);
 
     public static final String TYPE_LOCAL_NAME = "RequestedAttributesType";
 

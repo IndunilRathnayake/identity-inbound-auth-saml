@@ -541,6 +541,7 @@ public class SAMLSSOProviderServlet extends HttpServlet {
         sessionDTO.setAuthenticationContextClassRefList(signInRespDTO.getAuthenticationContextClassRefList());
         sessionDTO.setRequestedAttributes(signInRespDTO.getRequestedAttributes());
         sessionDTO.setRequestedAuthnContextComparison(signInRespDTO.getRequestedAuthnContextComparison());
+        sessionDTO.setRequestType(signInRespDTO.getRequestType());
 
         String sessionDataKey = UUIDGenerator.generateUUID();
         addSessionDataToCache(sessionDataKey, sessionDTO);
@@ -1360,6 +1361,7 @@ public class SAMLSSOProviderServlet extends HttpServlet {
         authnReqDTO.setAuthenticationContextClassRefList(sessionDTO.getAuthenticationContextClassRefList());
         authnReqDTO.setRequestedAttributes(sessionDTO.getRequestedAttributes());
         authnReqDTO.setRequestedAuthnContextComparison(sessionDTO.getRequestedAuthnContextComparison());
+        authnReqDTO.setRequestType(sessionDTO.getRequestType());
     }
 
     private void populateAuthnReqDTOWithRequiredServiceProviderConfigs(SAMLSSOAuthnReqDTO authnReqDTO,

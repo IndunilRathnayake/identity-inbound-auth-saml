@@ -19,7 +19,7 @@
 package org.wso2.carbon.identity.sso.saml.extension.eidas.util;
 
 /**
- * Constants for the eIDAS extension processing
+ * Constants for the eIDAS extension processing.
  */
 public class EidasConstants {
 

@@ -23,6 +23,9 @@ import org.wso2.carbon.identity.sso.saml.extension.eidas.util.EidasConstants;
 
 import javax.xml.namespace.QName;
 
+/**
+ * SAML Metadata SPType.
+ */
 public interface SPType extends SAMLObject {
 
     public static final String DEFAULT_ELEMENT_LOCAL_NAME = "SPType";

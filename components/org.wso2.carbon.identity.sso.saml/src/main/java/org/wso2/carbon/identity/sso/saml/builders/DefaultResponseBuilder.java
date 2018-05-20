@@ -27,6 +27,7 @@ import org.opensaml.saml2.core.Response;
 import org.wso2.carbon.identity.base.IdentityException;
 import org.wso2.carbon.identity.sso.saml.SAMLSSOConstants;
 import org.wso2.carbon.identity.sso.saml.dto.SAMLSSOAuthnReqDTO;
+import org.wso2.carbon.identity.sso.saml.extension.SAMLExtensionProcessor;
 import org.wso2.carbon.identity.sso.saml.util.SAMLSSOUtil;
 
 public class DefaultResponseBuilder implements ResponseBuilder {
@@ -59,6 +60,13 @@ public class DefaultResponseBuilder implements ResponseBuilder {
                 + SAMLSSOUtil.getSAMLResponseValidityPeriod() * 60 * 1000L);
         response.setIssueInstant(issueInstant);
         Assertion assertion = SAMLSSOUtil.buildSAMLAssertion(authReqDTO, notOnOrAfter, sessionId);
+
+        for (SAMLExtensionProcessor extensionProcessor : SAMLSSOUtil.getExtensionProcessors()) {
+            if (extensionProcessor.canHandle(response, assertion, authReqDTO)) {
+                extensionProcessor.processSAMLExtensions(response, assertion, authReqDTO);
+                extensionProcessor.validateSAMLExtensions(response, assertion, authReqDTO);
+            }
+        }
 
         if (authReqDTO.isDoEnableEncryptedAssertion()) {
 

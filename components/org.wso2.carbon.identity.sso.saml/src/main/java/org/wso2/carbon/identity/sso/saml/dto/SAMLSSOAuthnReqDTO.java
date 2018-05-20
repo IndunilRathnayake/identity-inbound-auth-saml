@@ -76,7 +76,8 @@ public class SAMLSSOAuthnReqDTO implements Serializable {
     private Map<String, List<AuthenticationContextProperty>> idpAuthenticationContextProperties;
     private List<SAMLAuthenticationContextClassRefDTO> authenticationContextClassRefList;
     private String requestedAuthnContextComparison;
-    private List<ClaimMapping> requestedAttributes;
+    private List<ClaimMapping> requestedAttributesList;
+    private String requestType;
 
     public String getDigestAlgorithmUri() {
         return digestAlgorithmUri;
@@ -501,35 +502,35 @@ public class SAMLSSOAuthnReqDTO implements Serializable {
     }
 
     public void setAuthenticationContextClassRefList(List<SAMLAuthenticationContextClassRefDTO>
-                                                             authenticationContextClassRefList) {
+                                                             authenticationContextClassRefs) {
 
         if (authenticationContextClassRefList == null) {
-            this.authenticationContextClassRefList = authenticationContextClassRefList;
+            authenticationContextClassRefList = authenticationContextClassRefs;
         } else {
-            this.authenticationContextClassRefList.addAll(authenticationContextClassRefList);
+            authenticationContextClassRefList.addAll(authenticationContextClassRefs);
         }
     }
 
     public void addAuthenticationContextClassRef(
-            SAMLAuthenticationContextClassRefDTO authenticationContextClassRefDTO) {
+            SAMLAuthenticationContextClassRefDTO authenticationContextClassRefs) {
 
         if (authenticationContextClassRefList == null) {
             authenticationContextClassRefList = new ArrayList<>();
         }
-        authenticationContextClassRefList.add(authenticationContextClassRefDTO);
+        authenticationContextClassRefList.add(authenticationContextClassRefs);
     }
 
     public List<ClaimMapping> getRequestedAttributes() {
 
-        return requestedAttributes;
+        return requestedAttributesList;
     }
 
     public void setRequestedAttributes(List<ClaimMapping> requestedAttributes) {
 
-        if (this.requestedAttributes == null) {
-            this.requestedAttributes = requestedAttributes;
+        if (requestedAttributesList == null) {
+            requestedAttributesList = requestedAttributes;
         } else {
-            this.requestedAttributes.addAll(requestedAttributes);
+            requestedAttributesList.addAll(requestedAttributes);
         }
     }
 
@@ -538,8 +539,18 @@ public class SAMLSSOAuthnReqDTO implements Serializable {
         return requestedAuthnContextComparison;
     }
 
-    public void setRequestedAuthnContextComparison(String requestedAuthnContextComparison) {
+    public void setRequestedAuthnContextComparison(String authnContextComparison) {
 
-        this.requestedAuthnContextComparison = requestedAuthnContextComparison;
+        requestedAuthnContextComparison = authnContextComparison;
+    }
+
+    public String getRequestType() {
+
+        return requestType;
+    }
+
+    public void setRequestType(String requestType) {
+
+        this.requestType = requestType;
     }
 }

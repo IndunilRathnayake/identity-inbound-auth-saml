@@ -17,8 +17,10 @@
  */
 package org.wso2.carbon.identity.sso.saml;
 
+import org.opensaml.saml2.common.Extensions;
 import org.opensaml.saml2.core.AuthnRequest;
 import org.opensaml.saml2.core.LogoutRequest;
+import org.opensaml.saml2.core.RequestAbstractType;
 import org.opensaml.xml.XMLObject;
 import org.wso2.carbon.identity.base.IdentityConstants;
 import org.wso2.carbon.identity.base.IdentityException;
@@ -27,7 +29,7 @@ import org.wso2.carbon.identity.sso.saml.dto.QueryParamDTO;
 import org.wso2.carbon.identity.sso.saml.dto.SAMLSSOAuthnReqDTO;
 import org.wso2.carbon.identity.sso.saml.dto.SAMLSSOReqValidationResponseDTO;
 import org.wso2.carbon.identity.sso.saml.dto.SAMLSSORespDTO;
-import org.wso2.carbon.identity.sso.saml.extension.ExtensionProcessor;
+import org.wso2.carbon.identity.sso.saml.extension.SAMLExtensionProcessor;
 import org.wso2.carbon.identity.sso.saml.processors.IdPInitLogoutRequestProcessor;
 import org.wso2.carbon.identity.sso.saml.processors.IdPInitSSOAuthnRequestProcessor;
 import org.wso2.carbon.identity.sso.saml.processors.SPInitLogoutRequestProcessor;
@@ -74,6 +76,8 @@ public class SAMLSSOService {
                                                                     String sessionId, String rpSessionId,
                                                                     String authnMode, boolean isPost)
             throws IdentityException {
+
+        SAMLSSOReqValidationResponseDTO validationResp = null;
         XMLObject request;
 
         if (isPost) {
@@ -85,29 +89,26 @@ public class SAMLSSOService {
         if (request instanceof AuthnRequest) {
             SSOAuthnRequestValidator authnRequestValidator =
                     SAMLSSOUtil.getSPInitSSOAuthnRequestValidator((AuthnRequest) request);
-            SAMLSSOReqValidationResponseDTO validationResp = authnRequestValidator.validate();
+            validationResp = authnRequestValidator.validate();
             validationResp.setRequestMessageString(samlReq);
             validationResp.setQueryString(queryString);
             validationResp.setRpSessionId(rpSessionId);
             validationResp.setIdPInitSSO(false);
-
-            if (((AuthnRequest) request).getExtensions() != null) {
-                for (ExtensionProcessor extensionProcessor : SAMLSSOUtil.getExtensionProcessors()) {
-                    extensionProcessor.processExtensions((AuthnRequest) request, validationResp);
-                }
-            }
-
-            return validationResp;
         } else if (request instanceof LogoutRequest) {
             SPInitLogoutRequestProcessor logoutReqProcessor = SAMLSSOUtil.getSPInitLogoutRequestProcessor();
-            SAMLSSOReqValidationResponseDTO validationResponseDTO =
-                    logoutReqProcessor.process((LogoutRequest) request,
-                            sessionId,
-                            queryString);
-            return validationResponseDTO;
+            validationResp = logoutReqProcessor.process((LogoutRequest) request, sessionId, queryString);
         }
 
-        return null;
+        Extensions extensions = ((RequestAbstractType) request).getExtensions();
+        if (extensions != null) {
+            for (SAMLExtensionProcessor extensionProcessor : SAMLSSOUtil.getExtensionProcessors()) {
+                if (extensionProcessor.canHandle((RequestAbstractType) request)) {
+                    extensionProcessor.processSAMLExtensions((RequestAbstractType) request, validationResp);
+                    extensionProcessor.validateSAMLExtensions((RequestAbstractType) request, validationResp);
+                }
+            }
+        }
+        return validationResp;
     }
 
     /**

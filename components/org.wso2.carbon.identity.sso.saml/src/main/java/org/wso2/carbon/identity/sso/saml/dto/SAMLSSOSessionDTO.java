@@ -52,6 +52,7 @@ public class SAMLSSOSessionDTO implements Serializable {
     private List<SAMLAuthenticationContextClassRefDTO> authenticationContextClassRefList;
     private String requestedAuthnContextComparison;
     private List<ClaimMapping> requestedAttributes;
+    private String requestType;
 
     public String getHttpQueryString() {
         return httpQueryString;
@@ -225,7 +226,7 @@ public class SAMLSSOSessionDTO implements Serializable {
     public void setAuthenticationContextClassRefList(List<SAMLAuthenticationContextClassRefDTO>
                                                              authenticationContextClassRefList) {
 
-        if (authenticationContextClassRefList == null) {
+        if (this.authenticationContextClassRefList == null) {
             this.authenticationContextClassRefList = authenticationContextClassRefList;
         } else {
             this.authenticationContextClassRefList.addAll(authenticationContextClassRefList);
@@ -263,5 +264,15 @@ public class SAMLSSOSessionDTO implements Serializable {
     public void setRequestedAuthnContextComparison(String requestedAuthnContextComparison) {
 
         this.requestedAuthnContextComparison = requestedAuthnContextComparison;
+    }
+
+    public String getRequestType() {
+
+        return requestType;
+    }
+
+    public void setRequestType(String requestType) {
+
+        this.requestType = requestType;
     }
 }

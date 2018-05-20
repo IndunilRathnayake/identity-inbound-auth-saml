@@ -18,7 +18,6 @@
 package org.wso2.carbon.identity.sso.saml.util;
 
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.collections.ListUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -93,7 +92,7 @@ import org.wso2.carbon.identity.sso.saml.dto.QueryParamDTO;
 import org.wso2.carbon.identity.sso.saml.dto.SAMLSSOAuthnReqDTO;
 import org.wso2.carbon.identity.sso.saml.dto.SingleLogoutRequestDTO;
 import org.wso2.carbon.identity.sso.saml.exception.IdentitySAML2SSOException;
-import org.wso2.carbon.identity.sso.saml.extension.ExtensionProcessor;
+import org.wso2.carbon.identity.sso.saml.extension.SAMLExtensionProcessor;
 import org.wso2.carbon.identity.sso.saml.processors.IdPInitLogoutRequestProcessor;
 import org.wso2.carbon.identity.sso.saml.processors.IdPInitSSOAuthnRequestProcessor;
 import org.wso2.carbon.identity.sso.saml.processors.SPInitLogoutRequestProcessor;
@@ -135,6 +134,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -195,7 +195,7 @@ public class SAMLSSOUtil {
     private static String sPInitSSOAuthnRequestProcessorClassName = null;
     private static String sPInitLogoutRequestProcessorClassName = null;
     private static ApplicationManagementService applicationMgtService;
-    private static List<ExtensionProcessor> extensionProcessors;
+    private static volatile List<SAMLExtensionProcessor> extensionProcessors;
 
     private SAMLSSOUtil() {
     }
@@ -304,15 +304,28 @@ public class SAMLSSOUtil {
         SAMLSSOUtil.httpService = httpService;
     }
 
-    public static List<ExtensionProcessor> getExtensionProcessors() {
+    public static List<SAMLExtensionProcessor> getExtensionProcessors() {
         return extensionProcessors;
     }
 
-    public static void setExtensionProcessors(ExtensionProcessor extensionProcessor) {
-        if(SAMLSSOUtil.extensionProcessors == null) {
+    public static void addExtensionProcessors(SAMLExtensionProcessor extensionProcessor) {
+        if (SAMLSSOUtil.extensionProcessors == null) {
             SAMLSSOUtil.extensionProcessors = new ArrayList<>();
+            SAMLSSOUtil.extensionProcessors.add(extensionProcessor);
         } else {
             SAMLSSOUtil.extensionProcessors.add(extensionProcessor);
+        }
+    }
+
+    public static void removeExtensionProcessors(SAMLExtensionProcessor extensionProcessor) {
+
+        if (SAMLSSOUtil.extensionProcessors != null) {
+            Iterator<SAMLExtensionProcessor> iterator = extensionProcessors.iterator();
+            while (iterator.hasNext()) {
+                if (iterator.next().getClass().equals(extensionProcessor.getClass())) {
+                    iterator.remove();
+                }
+            }
         }
     }
 

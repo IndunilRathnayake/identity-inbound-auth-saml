@@ -24,6 +24,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Properties;
 
 public class SAMLSSOReqValidationResponseDTO implements Serializable {
 
@@ -57,7 +58,7 @@ public class SAMLSSOReqValidationResponseDTO implements Serializable {
     private List<SAMLAuthenticationContextClassRefDTO> authenticationContextClassRefList;
     private String requestedAuthnContextComparison;
     private List<ClaimMapping> requestedAttributes;
-    private String requestType;
+    private Properties properties;
 
     public String getDigestAlgorithmUri() {
         return digestAlgorithmUri;
@@ -351,13 +352,16 @@ public class SAMLSSOReqValidationResponseDTO implements Serializable {
         this.requestedAuthnContextComparison = requestedAuthnContextComparison;
     }
 
-    public String getRequestType() {
+    public Properties getProperties() {
 
-        return requestType;
+        if (properties == null) {
+            properties = new Properties();
+        }
+        return properties;
     }
 
-    public void setRequestType(String requestType) {
+    public void setProperties(Properties properties) {
 
-        this.requestType = requestType;
+        this.properties = properties;
     }
 }

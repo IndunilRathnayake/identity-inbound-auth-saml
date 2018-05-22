@@ -64,7 +64,6 @@ public class DefaultResponseBuilder implements ResponseBuilder {
         for (SAMLExtensionProcessor extensionProcessor : SAMLSSOUtil.getExtensionProcessors()) {
             if (extensionProcessor.canHandle(response, assertion, authReqDTO)) {
                 extensionProcessor.processSAMLExtensions(response, assertion, authReqDTO);
-                extensionProcessor.validateSAMLExtensions(response, assertion, authReqDTO);
             }
         }
 

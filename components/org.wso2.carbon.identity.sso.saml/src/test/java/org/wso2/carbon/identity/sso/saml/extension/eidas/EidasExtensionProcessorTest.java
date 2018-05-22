@@ -31,6 +31,7 @@ import org.wso2.carbon.identity.base.IdentityException;
 import org.wso2.carbon.identity.sso.saml.TestUtils;
 import org.wso2.carbon.identity.sso.saml.dto.SAMLSSOReqValidationResponseDTO;
 import org.wso2.carbon.identity.sso.saml.extension.eidas.model.RequestedAttributes;
+import org.wso2.carbon.identity.sso.saml.extension.eidas.util.EidasConstants;
 
 import static org.mockito.MockitoAnnotations.initMocks;
 
@@ -65,26 +66,20 @@ public class EidasExtensionProcessorTest {
     @Test(priority = 1)
     public void testProcessSAMLExtensions() throws IdentityException {
 
-        String eidas_requestType = "eidas";
+        validationResp.setValid(true);
+        validationResp.setForceAuthn(true);
+        validationResp.setPassive(false);
+        validationResp.setRequestedAuthnContextComparison(AuthnContextComparisonTypeEnumeration.MINIMUM.toString());
         eidasExtensionProcessor.processSAMLExtensions(request, validationResp);
-        Assert.assertEquals(validationResp.getRequestType(), eidas_requestType, "Error in setting the " +
-                "request type.");
+
+        Assert.assertEquals(validationResp.getProperties().get(EidasConstants.EIDAS_REQUEST),
+                EidasConstants.EIDAS_PREFIX, "Error in setting the request type.");
+        Assert.assertTrue(validationResp.isValid(), "Error when validating the SAML extensions in request");
         Assert.assertNotEquals(validationResp.getRequestedAttributes().size(),  0, "Error in processing " +
                 "and setting the requested attributes retrieved in request.");
         NodeList requestedAttrs = request.getExtensions().getUnknownXMLObjects(RequestedAttributes.DEFAULT_ELEMENT_NAME)
                 .get(0).getDOM().getChildNodes();
         Assert.assertEquals(requestedAttrs.getLength(),  validationResp.getRequestedAttributes().size(), "Error in " +
                 "processing and setting the requested attributes retrieved in request.");
-    }
-
-    @Test(priority = 2)
-    public void testValidateSAMLExtensions() throws IdentityException {
-
-        validationResp.setValid(true);
-        validationResp.setForceAuthn(true);
-        validationResp.setPassive(false);
-        validationResp.setRequestedAuthnContextComparison(AuthnContextComparisonTypeEnumeration.MINIMUM.toString());
-        eidasExtensionProcessor.validateSAMLExtensions(request, validationResp);
-        Assert.assertTrue(validationResp.isValid(), "Error when validating the SAML extensions in request");
     }
 }

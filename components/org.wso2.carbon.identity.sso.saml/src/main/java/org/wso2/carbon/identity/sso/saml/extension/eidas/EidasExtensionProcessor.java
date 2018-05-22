@@ -51,6 +51,7 @@ import org.wso2.carbon.identity.sso.saml.util.SAMLSSOUtil;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.apache.commons.collections.CollectionUtils.isNotEmpty;
 
@@ -59,7 +60,7 @@ import static org.apache.commons.collections.CollectionUtils.isNotEmpty;
  */
 public class EidasExtensionProcessor implements SAMLExtensionProcessor {
     private static Log log = LogFactory.getLog(EidasExtensionProcessor.class);
-    private static String errorMsg = "202010 - Mandatory Attribute not found.";
+    private static String errorMsg = "Mandatory Attribute not found.";
 
     /**
      * Check whether the SAML authentication request can be handled by the eIDAS extension processor.
@@ -71,15 +72,13 @@ public class EidasExtensionProcessor implements SAMLExtensionProcessor {
     @Override
     public boolean canHandle(RequestAbstractType request) throws IdentitySAML2SSOException {
 
-        return request.getNamespaces().stream().anyMatch(namespace -> namespace.getNamespacePrefix()
-                .equals(EidasConstants.EIDAS_PREFIX));
+        return request.getNamespaces().stream().anyMatch(namespace -> namespace.getNamespaceURI()
+                .equals(EidasConstants.EIDAS_NS));
     }
 
     /**
      * Check whether the SAML response can be handled by the eIDAS extension processor.
      *
-     * @param response   SAML response
-     * @param assertion  SAML assertion
      * @param authReqDTO Authentication request data object
      * @return true if the request can be handled
      * @throws IdentitySAML2SSOException
@@ -88,11 +87,12 @@ public class EidasExtensionProcessor implements SAMLExtensionProcessor {
     public boolean canHandle(StatusResponseType response, Assertion assertion, SAMLSSOAuthnReqDTO authReqDTO)
             throws IdentitySAML2SSOException {
 
-        return authReqDTO.getRequestType().equals(EidasConstants.EIDAS_PREFIX);
+        return authReqDTO.getProperties().getProperty(EidasConstants.EIDAS_REQUEST)
+                .equals(EidasConstants.EIDAS_PREFIX);
     }
 
     /**
-     * Process the SAML extensions in authentication request for EIDAS message format.
+     * Process and Validate the SAML extensions in authentication request for EIDAS message format.
      *
      * @param request        Authentication request
      * @param validationResp reqValidationResponseDTO
@@ -108,41 +108,21 @@ public class EidasExtensionProcessor implements SAMLExtensionProcessor {
             }
             Extensions extensions = request.getExtensions();
             if (extensions != null) {
+                validateForceAuthn(validationResp);
+                validateIsPassive(validationResp);
+                validateAuthnContextComparison(validationResp);
+                validateSPType(validationResp, extensions);
+
                 processRequestedAttributes(validationResp, extensions);
             }
         }
     }
 
     /**
-     * Validate the SAML extensions in authentication request for EIDAS message format.
+     * Process and Validate a response against the SAML request with extensions for EIDAS message format.
      *
-     * @param request SAML request
-     * @param validationResp Authentication response data object
-     * @throws IdentitySAML2SSOException
-     */
-    @Override
-    public void validateSAMLExtensions(RequestAbstractType request, SAMLSSOReqValidationResponseDTO validationResp)
-            throws IdentitySAML2SSOException {
-
-        if (request instanceof AuthnRequest) {
-            if (log.isDebugEnabled()) {
-                log.debug("Validate the extensions for EIDAS message format");
-            }
-            Extensions extensions = request.getExtensions();
-            if (extensions != null) {
-                validateForceAuthn(validationResp);
-                validateIsPassive(validationResp);
-                validateAuthnContextComparison(validationResp);
-                validateSPType(validationResp, extensions);
-            }
-        }
-    }
-
-    /**
-     * Process a response against the SAML request with extensions for EIDAS message format.
-     *
-     * @param response SAML response
-     * @param assertion SAML assertion
+     * @param response    SAML response
+     * @param assertion   SAML assertion
      * @param authReqDTO Authentication request data object
      * @throws IdentitySAML2SSOException
      */
@@ -154,35 +134,14 @@ public class EidasExtensionProcessor implements SAMLExtensionProcessor {
             if (log.isDebugEnabled()) {
                 log.debug("Process the extensions for EIDAS message format");
             }
-            setAuthnContextClassRef(assertion, authReqDTO);
-        }
-    }
-
-    /**
-     * Validate a response against the SAML request with extensions for EIDAS message format.
-     *
-     * @param response SAML response
-     * @param assertion SAML assertion
-     * @param authReqDTO Authentication request data object
-     * @throws IdentitySAML2SSOException
-     */
-    @Override
-    public void validateSAMLExtensions(StatusResponseType response, Assertion assertion, SAMLSSOAuthnReqDTO authReqDTO)
-            throws IdentitySAML2SSOException {
-
-        if (response instanceof Response) {
-            if (log.isDebugEnabled()) {
-                log.debug("Validate the extensions for EIDAS message format");
-            }
             validateMandatoryRequestedAttr((Response) response, assertion, authReqDTO);
+            setAuthnContextClassRef(assertion, authReqDTO);
         }
     }
 
     private void validateMandatoryRequestedAttr(Response response, Assertion assertion, SAMLSSOAuthnReqDTO authReqDTO) {
 
-        List<String> mandatoryClaims = new ArrayList<>();
-        getMandatoryAttributes(authReqDTO, mandatoryClaims);
-
+        List<String> mandatoryClaims = getMandatoryAttributes(authReqDTO);
         boolean isMandatoryClaimPresent = validateMandatoryClaims(assertion, mandatoryClaims);
         if (!isMandatoryClaimPresent) {
             response.setStatus(SAMLSSOUtil.buildResponseStatus(SAMLSSOConstants.StatusCodes.IDENTITY_PROVIDER_ERROR,
@@ -197,7 +156,6 @@ public class EidasExtensionProcessor implements SAMLExtensionProcessor {
             assertion.getSubject().setNameID(nameId);
             return;
         }
-
         setAttributeNameFormat(assertion.getAttributeStatements());
     }
 
@@ -215,7 +173,7 @@ public class EidasExtensionProcessor implements SAMLExtensionProcessor {
             XMLObject requestedAttrs = extensions.getUnknownXMLObjects(RequestedAttributes.DEFAULT_ELEMENT_NAME).get(0);
             NodeList nodeList = requestedAttrs.getDOM().getChildNodes();
             validationResp.setRequestedAttributes(new ArrayList<>());
-            validationResp.setRequestType(EidasConstants.EIDAS_PREFIX);
+            validationResp.getProperties().put(EidasConstants.EIDAS_REQUEST, EidasConstants.EIDAS_PREFIX);
 
             for (int i = 0; i < nodeList.getLength(); i++) {
                 ClaimMapping claimMapping = new ClaimMapping();
@@ -313,10 +271,10 @@ public class EidasExtensionProcessor implements SAMLExtensionProcessor {
         return isMandatoryClaimPresent;
     }
 
-    private void getMandatoryAttributes(SAMLSSOAuthnReqDTO authReqDTO, List<String> mandatoryClaims) {
+    private List<String> getMandatoryAttributes(SAMLSSOAuthnReqDTO authReqDTO) {
 
-        authReqDTO.getRequestedAttributes().stream().filter(ClaimMapping::isMandatory).map(requestedClaim ->
-                requestedClaim.getRemoteClaim().getClaimUri()).forEach(mandatoryClaims::add);
+        return authReqDTO.getRequestedAttributes().stream().filter(ClaimMapping::isMandatory)
+                .map(requestedClaim -> requestedClaim.getRemoteClaim().getClaimUri()).collect(Collectors.toList());
     }
 
     private void setAttributeNameFormat(List<AttributeStatement> attributeStatements) {

@@ -104,7 +104,6 @@ public class SAMLSSOService {
             for (SAMLExtensionProcessor extensionProcessor : SAMLSSOUtil.getExtensionProcessors()) {
                 if (extensionProcessor.canHandle((RequestAbstractType) request)) {
                     extensionProcessor.processSAMLExtensions((RequestAbstractType) request, validationResp);
-                    extensionProcessor.validateSAMLExtensions((RequestAbstractType) request, validationResp);
                 }
             }
         }

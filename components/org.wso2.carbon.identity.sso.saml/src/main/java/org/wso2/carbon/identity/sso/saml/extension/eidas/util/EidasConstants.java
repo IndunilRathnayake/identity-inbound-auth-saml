@@ -25,6 +25,7 @@ public class EidasConstants {
 
     public static final String EIDAS_NS = "http://eidas.europa.eu/saml-extensions";
     public static final String EIDAS_PREFIX = "eidas";
+    public static final String EIDAS_REQUEST = "request_type";
     public static final String EIDAS_ATTRIBUTE_NAME_FORMAT = "NameFormat";
     public static final String EIDAS_ATTRIBUTE_NAME_FORMAT_URI = "urn:oasis:names:tc:SAML:2.0:attrname-format:uri";
     public static final String EIDAS_ATTRIBUTE_NAME = "Name";

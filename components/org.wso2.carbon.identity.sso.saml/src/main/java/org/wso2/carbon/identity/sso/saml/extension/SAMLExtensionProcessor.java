@@ -62,16 +62,6 @@ public interface SAMLExtensionProcessor {
             throws IdentitySAML2SSOException;
 
     /**
-     * Validate the SAML extensions in a request.
-     *
-     * @param request SAML request
-     * @param validationResp Authentication response data object
-     * @throws IdentitySAML2SSOException
-     */
-    public void validateSAMLExtensions(RequestAbstractType request, SAMLSSOReqValidationResponseDTO validationResp)
-            throws IdentitySAML2SSOException;
-
-    /**
      * Process the SAML extensions in a response or process against the SAML request with extensions.
      *
      * @param response SAML response
@@ -80,16 +70,5 @@ public interface SAMLExtensionProcessor {
      * @throws IdentitySAML2SSOException
      */
     public void processSAMLExtensions(StatusResponseType response, Assertion assertion, SAMLSSOAuthnReqDTO authReqDTO)
-            throws IdentitySAML2SSOException;
-
-    /**
-     * Validate the SAML extensions in a response or validate against the SAML request with extensions.
-     *
-     * @param response SAML response
-     * @param assertion SAML assertion
-     * @param authReqDTO Authentication request data object
-     * @throws IdentitySAML2SSOException
-     */
-    public void validateSAMLExtensions(StatusResponseType response, Assertion assertion, SAMLSSOAuthnReqDTO authReqDTO)
             throws IdentitySAML2SSOException;
 }
